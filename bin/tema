@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""tema — cambiador de temas estilo Omarchy para elementary OS.
+
+Usa las paletas y fondos de los temas de Omarchy (github.com/basecamp/omarchy)
+y aplica el tema a Ghostty, Starship, btop, Zed, el fondo de pantalla y el
+color de acento / modo claro-oscuro de Pantheon.
+
+Uso:
+  tema                 muestra el tema actual y la lista de temas
+  tema <nombre>        aplica un tema (lo descarga la primera vez)
+  tema fondo           pasa al siguiente fondo del tema actual
+"""
+import colorsys
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+import tomllib
+import urllib.request
+from pathlib import Path
+
+HOME = Path.home()
+DATA = HOME / ".local/share/tema"
+STATE = HOME / ".config/tema"
+WALLS = HOME / "Pictures/Wallpapers"
+API = "https://api.github.com/repos/basecamp/omarchy/contents/themes"
+
+# Tema de Zed para cada tema de Omarchy (los que tienen equivalente)
+ZED = {
+    "tokyo-night": "Tokyo Night",
+    "catppuccin": "Catppuccin Mocha",
+    "catppuccin-latte": "Catppuccin Latte",
+    "rose-pine": "Rosé Pine Dawn",
+    "everforest": "Everforest Dark Medium (regular)",
+    "kanagawa": "Kanagawa Wave",
+    "nord": "Nord Dark",
+    "gruvbox": "Gruvbox Dark",
+}
+ZED_FALLBACK = {"dark": "One Dark", "light": "One Light"}
+
+# Acentos de elementary y su tono (grados)
+ACCENTS = {
+    "blueberry": 212, "strawberry": 357, "orange": 24, "banana": 43,
+    "lime": 103, "mint": 170, "grape": 268, "bubblegum": 335,
+}
+ACCENT_OVERRIDE = {"tokyo-night": "grape"}
+
+
+# ---------------------------------------------------------------- utilidades
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "tema"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read()
+
+
+def gset(schema, key, value):
+    subprocess.run(["gsettings", "set", schema, key, value], check=False)
+
+
+def current():
+    try:
+        return (STATE / "actual").read_text().strip()
+    except OSError:
+        return None
+
+
+def available():
+    cache = DATA / "temas.json"
+    try:
+        if time.time() - cache.stat().st_mtime < 86400:
+            return json.loads(cache.read_text())
+    except OSError:
+        pass
+    try:
+        names = [e["name"] for e in json.loads(fetch(API)) if e["type"] == "dir"]
+        DATA.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(names))
+        return names
+    except Exception:
+        return sorted(p.name for p in DATA.iterdir() if (p / "colors.toml").exists()) if DATA.exists() else []
+
+
+# ---------------------------------------------------------------- descarga
+def download(name):
+    tdir = DATA / name
+    colors = tdir / "colors.toml"
+    wdir = WALLS / name
+    if not colors.exists():
+        print(f"Descargando paleta de {name}…")
+        entries = {e["name"]: e for e in json.loads(fetch(f"{API}/{name}"))}
+        if "colors.toml" not in entries:
+            sys.exit(f"El tema {name} no tiene colors.toml")
+        tdir.mkdir(parents=True, exist_ok=True)
+        colors.write_bytes(fetch(entries["colors.toml"]["download_url"]))
+    if not wdir.exists() or not any(wdir.glob("*.jpg")):
+        print(f"Descargando fondos de {name}…")
+        from PIL import Image
+        wdir.mkdir(parents=True, exist_ok=True)
+        try:
+            bgs = json.loads(fetch(f"{API}/{name}/backgrounds"))
+        except Exception:
+            bgs = []
+        for e in bgs:
+            if not re.search(r"\.(jpe?g|png|webp)$", e["name"], re.I) or e["name"].startswith("omarchy."):
+                continue
+            src = wdir / e["name"]
+            src.write_bytes(fetch(e["download_url"]))
+            dst = src.with_suffix(".jpg")
+            if src != dst:
+                Image.open(src).convert("RGB").save(dst, quality=95)
+                src.unlink()
+    c = tomllib.loads(colors.read_text())
+    c.setdefault("orange", c.get("bright_yellow", c["yellow"]))
+    return c
+
+
+# ---------------------------------------------------------------- aplicar
+def ghostty(c):
+    tdir = HOME / ".config/ghostty/themes"
+    tdir.mkdir(parents=True, exist_ok=True)
+    pal = [
+        c["dark_background"], c["red"], c["green"], c["yellow"],
+        c["blue"], c["magenta"], c["cyan"], c["foreground"],
+        c["muted"], c.get("bright_red", c["red"]), c.get("bright_green", c["green"]),
+        c.get("bright_yellow", c["yellow"]), c.get("bright_blue", c["blue"]),
+        c.get("bright_magenta", c["magenta"]), c.get("bright_cyan", c["cyan"]),
+        c["bright_foreground"],
+    ]
+    lines = [f"palette = {i}={v}" for i, v in enumerate(pal)] + [
+        f"background = {c['background']}",
+        f"foreground = {c['foreground']}",
+        f"cursor-color = {c['bright_foreground']}",
+        f"selection-background = {c['selection']}",
+        f"selection-foreground = {c['bright_foreground']}",
+    ]
+    (tdir / "tema").write_text("# Generado por `tema`\n" + "\n".join(lines) + "\n")
+    cfg = HOME / ".config/ghostty/config"
+    txt = cfg.read_text()
+    txt = re.sub(r"(?m)^theme\s*=.*$", "theme = tema", txt)
+    txt = re.sub(r"(?m)^window-theme\s*=.*$", "window-theme = auto", txt)
+    cfg.write_text(txt)
+    # Recargar ventanas abiertas, sólo si el proceso atiende SIGUSR2
+    for pid in subprocess.run(["pgrep", "-x", "ghostty"], capture_output=True, text=True).stdout.split():
+        try:
+            caught = int(re.search(r"SigCgt:\s*(\w+)", Path(f"/proc/{pid}/status").read_text()).group(1), 16)
+            if caught & (1 << 11):
+                os.kill(int(pid), 12)
+        except (OSError, AttributeError, ValueError):
+            pass
+
+
+def starship(c):
+    cfg = HOME / ".config/starship.toml"
+    if not cfg.exists():
+        return
+    pal = {
+        "seg1": c["light_foreground"], "seg2": c["accent"], "seg3": c["muted"],
+        "seg4": c["lighter_background"], "seg5": c["dark_background"],
+        "txt_dark": c["darker_background"], "txt_light": c["bright_foreground"],
+        "txt_muted": c["foreground"],
+    }
+    block = "[palettes.tema]\n" + "".join(f'{k} = "{v}"\n' for k, v in pal.items())
+    txt = cfg.read_text()
+    txt = re.sub(r"(?m)^\[palettes\.tema\]\n(?:[^\[\n].*\n?)*", block, txt)
+    cfg.write_text(txt)
+
+
+def btop(c):
+    tdir = HOME / ".config/btop/themes"
+    tdir.mkdir(parents=True, exist_ok=True)
+    t = {
+        "main_bg": c["background"], "main_fg": c["foreground"], "title": c["bright_foreground"],
+        "hi_fg": c["accent"], "selected_bg": c["selection"], "selected_fg": c["bright_foreground"],
+        "inactive_fg": c["muted"], "graph_text": c["dark_foreground"], "meter_bg": c["muted"],
+        "proc_misc": c["cyan"], "cpu_box": c["accent"], "mem_box": c["green"],
+        "net_box": c["magenta"], "proc_box": c["blue"], "div_line": c["muted"],
+        "temp_start": c["green"], "temp_mid": c["yellow"], "temp_end": c["red"],
+        "cpu_start": c["cyan"], "cpu_mid": c["blue"], "cpu_end": c["magenta"],
+        "free_start": c["green"], "free_mid": c["green"], "free_end": c["cyan"],
+        "cached_start": c["blue"], "cached_mid": c["blue"], "cached_end": c["cyan"],
+        "available_start": c["yellow"], "available_mid": c["yellow"], "available_end": c["orange"],
+        "used_start": c["orange"], "used_mid": c["red"], "used_end": c["red"],
+        "download_start": c["blue"], "download_mid": c["cyan"], "download_end": c["accent"],
+        "upload_start": c["magenta"], "upload_mid": c["red"], "upload_end": c["orange"],
+        "process_start": c["cyan"], "process_mid": c["blue"], "process_end": c["magenta"],
+    }
+    (tdir / "tema.theme").write_text("".join(f'theme[{k}]="{v}"\n' for k, v in t.items()))
+    cfg = HOME / ".config/btop/btop.conf"
+    txt = cfg.read_text() if cfg.exists() else ""
+    if re.search(r"(?m)^color_theme\s*=", txt):
+        txt = re.sub(r"(?m)^color_theme\s*=.*$", 'color_theme = "tema"', txt)
+    else:
+        txt = 'color_theme = "tema"\n' + txt
+    cfg.write_text(txt)
+
+
+def zed(name, mode):
+    cfg = HOME / ".config/zed/settings.json"
+    if not cfg.exists():
+        return
+    theme = ZED.get(name, ZED_FALLBACK[mode])
+    txt = cfg.read_text()
+    new = re.sub(rf'("theme"\s*:\s*\{{[^}}]*?"{mode}"\s*:\s*)"[^"]*"', rf'\g<1>"{theme}"', txt, count=1)
+    if new != txt:
+        cfg.write_text(new)
+
+
+def pantheon(name, c, mode):
+    gset("org.gnome.desktop.interface", "color-scheme", "prefer-light" if mode == "light" else "prefer-dark")
+    accent = ACCENT_OVERRIDE.get(name)
+    if not accent:
+        r, g, b = (int(c["accent"][i:i + 2], 16) / 255 for i in (1, 3, 5))
+        h, _, s = colorsys.rgb_to_hls(r, g, b)
+        if s < 0.2:
+            accent = "slate"
+        else:
+            deg = h * 360
+            accent = min(ACCENTS, key=lambda a: min(abs(ACCENTS[a] - deg), 360 - abs(ACCENTS[a] - deg)))
+    gset("org.gnome.desktop.interface", "gtk-theme", f"io.elementary.stylesheet.{accent}")
+    return accent
+
+
+def wallpaper(name, step=0):
+    walls = sorted((WALLS / name).glob("*.jpg"))
+    if not walls:
+        return None
+    idx_file = STATE / "fondo"
+    try:
+        idx = int(idx_file.read_text()) if step else 0
+    except (OSError, ValueError):
+        idx = 0
+    idx = (idx + step) % len(walls)
+    STATE.mkdir(parents=True, exist_ok=True)
+    idx_file.write_text(str(idx))
+    uri = walls[idx].as_uri()
+    gset("org.gnome.desktop.background", "picture-uri", uri)
+    gset("org.gnome.desktop.background", "picture-uri-dark", uri)
+    return walls[idx].name
+
+
+def apply(name):
+    c = download(name)
+    mode = c.get("mode", "dark")
+    ghostty(c)
+    starship(c)
+    btop(c)
+    zed(name, mode)
+    accent = pantheon(name, c, mode)
+    wall = wallpaper(name)
+    STATE.mkdir(parents=True, exist_ok=True)
+    (STATE / "actual").write_text(name)
+    print(f"Tema {name} aplicado ({mode}, acento {accent}, fondo {wall or '—'}).")
+    print("Ghostty se recargó; btop toma el tema al volver a abrirlo.")
+
+
+# ---------------------------------------------------------------- main
+def main():
+    args = sys.argv[1:]
+    if not args:
+        cur = current()
+        print(f"Tema actual: {cur or '—'}\n\nDisponibles:")
+        for n in available():
+            mark = "●" if n == cur else " "
+            print(f"  {mark} {n}")
+        print("\nUso: tema <nombre>  |  tema fondo")
+        return
+    if args[0] in ("-h", "--help", "ayuda"):
+        print(__doc__.strip())
+        return
+    if args[0] == "fondo":
+        cur = current() or "tokyo-night"
+        print(wallpaper(cur, step=1) or "El tema actual no tiene fondos.")
+        return
+    name = args[0]
+    names = available()
+    if names and name not in names:
+        sys.exit(f"No existe el tema '{name}'. Escribe `tema` para ver la lista.")
+    apply(name)
+
+
+if __name__ == "__main__":
+    main()

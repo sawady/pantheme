@@ -1,0 +1,4 @@
+# Nunca versionar configuraciones completas con secretos
+config/zed/settings.json
+*.bak
+__pycache__/

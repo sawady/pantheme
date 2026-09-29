@@ -1,0 +1,22 @@
+# lazygit — colores ANSI (siguen el tema de Ghostty / `tema`)
+gui:
+  nerdFontsVersion: "3"
+  border: rounded
+  showRandomTip: false
+  theme:
+    activeBorderColor: [blue, bold]
+    inactiveBorderColor: [white]
+    searchingActiveBorderColor: [cyan, bold]
+    optionsTextColor: [blue]
+    selectedLineBgColor: [black]
+    inactiveViewSelectedLineBgColor: [bold]
+    cherryPickedCommitFgColor: [blue]
+    cherryPickedCommitBgColor: [magenta]
+    markedBaseCommitFgColor: [blue]
+    markedBaseCommitBgColor: [yellow]
+    unstagedChangesColor: [red]
+    defaultFgColor: [default]
+git:
+  diffRenderers:
+    - colorArg: always
+      type: rawGit

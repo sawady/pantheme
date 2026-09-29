@@ -1,0 +1,17 @@
+// Fragmento para ~/.config/zed/settings.json (no se versiona el archivo
+// completo porque suele contener tokens). `tema` cambia "dark"/"light".
+{
+  "theme": {
+    "mode": "system",
+    "light": "Ayu Light",
+    "dark": "Tokyo Night"
+  },
+  "auto_install_extensions": {
+    "tokyo-night": true,
+    "catppuccin": true,
+    "rose-pine-theme": true,
+    "everforest": true,
+    "kanagawa-themes": true,
+    "nord": true
+  }
+}

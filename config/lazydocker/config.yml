@@ -1,0 +1,8 @@
+# lazydocker — colores ANSI (siguen el tema de Ghostty / `tema`)
+gui:
+  border: rounded
+  theme:
+    activeBorderColor: [blue, bold]
+    inactiveBorderColor: [white]
+    selectedLineBgColor: [black]
+    optionsTextColor: [blue]
