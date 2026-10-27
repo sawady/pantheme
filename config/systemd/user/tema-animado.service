@@ -1,0 +1,7 @@
+[Unit]
+Description=Fondo animado del tema actual (si tiene)
+
+[Service]
+ExecStart=%h/.local/bin/tema animado
+Restart=on-failure
+RestartSec=3

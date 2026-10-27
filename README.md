@@ -61,6 +61,17 @@ tema catppuccin    # aplicar (descarga la primera vez)
 tema fondo         # siguiente fondo del tema actual
 ```
 
+Además de los temas de Omarchy hay **temas propios** en `temas/`:
+
+- **`matrix`**: verde fósforo sobre negro, con un tema de Zed propio y un
+  **fondo animado** de lluvia de katakana (`temas/matrix/animado`, Python + GTK3
+  + cairo, ~7 % de un núcleo a 15 fps). El fondo animado se controla con
+  `tema animado on|off`; también se pueden usar las variables `MATRIX_FPS` y `MATRIX_SIZE`.
+
+Un tema propio es una carpeta con `colors.toml` (mismo formato que Omarchy, con
+una tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
+`animado`. `install.sh configs` los copia a `~/.local/share/tema/`.
+
 Aplica: colores de Ghostty (recarga las ventanas abiertas), paleta de Starship,
 btop, tema de Zed (si hay equivalente), fondo de pantalla, acento de Pantheon y
 modo claro/oscuro. Fondos en `~/Pictures/Wallpapers/<tema>/`.
@@ -93,6 +104,7 @@ Deshacer: `./gsettings/atajos.sh --restaurar`.
 
 ```
 bin/tema                      cambiador de temas (Python)
+temas/<nombre>/               temas propios (colors.toml, animado, fondos)
 config/                       archivos que van a ~/.config
 gsettings/escritorio.sh       dock, terminal por defecto
 gsettings/atajos.sh           atajos (con --restaurar)

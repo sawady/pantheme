@@ -9,6 +9,11 @@ Uso:
   tema                 muestra el tema actual y la lista de temas
   tema <nombre>        aplica un tema (lo descarga la primera vez)
   tema fondo           pasa al siguiente fondo del tema actual
+  tema animado on|off  activa/desactiva el fondo animado (si el tema tiene)
+
+Temas propios: una carpeta en ~/.local/share/tema/<nombre>/ con colors.toml
+(mismo formato que Omarchy, con una tabla [starship] opcional para ajustar
+la paleta del prompt) y opcionalmente un ejecutable `animado`.
 """
 import colorsys
 import json
@@ -37,6 +42,7 @@ ZED = {
     "kanagawa": "Kanagawa Wave",
     "nord": "Nord Dark",
     "gruvbox": "Gruvbox Dark",
+    "matrix": "Matrix",
 }
 ZED_FALLBACK = {"dark": "One Dark", "light": "One Light"}
 
@@ -66,7 +72,11 @@ def current():
         return None
 
 
-def available():
+def local_themes():
+    return sorted(p.name for p in DATA.iterdir() if (p / "colors.toml").exists()) if DATA.exists() else []
+
+
+def remote_themes():
     cache = DATA / "temas.json"
     try:
         if time.time() - cache.stat().st_mtime < 86400:
@@ -79,7 +89,12 @@ def available():
         cache.write_text(json.dumps(names))
         return names
     except Exception:
-        return sorted(p.name for p in DATA.iterdir() if (p / "colors.toml").exists()) if DATA.exists() else []
+        return []
+
+
+def available():
+    remote = remote_themes()
+    return remote + [n for n in local_themes() if n not in remote]
 
 
 # ---------------------------------------------------------------- descarga
@@ -161,6 +176,7 @@ def starship(c):
         "txt_dark": c["darker_background"], "txt_light": c["bright_foreground"],
         "txt_muted": c["foreground"],
     }
+    pal.update(c.get("starship", {}))
     block = "[palettes.tema]\n" + "".join(f'{k} = "{v}"\n' for k, v in pal.items())
     txt = cfg.read_text()
     txt = re.sub(r"(?m)^\[palettes\.tema\]\n(?:[^\[\n].*\n?)*", block, txt)
@@ -240,6 +256,26 @@ def wallpaper(name, step=0):
     return walls[idx].name
 
 
+def animated(action=None):
+    """Sin acción: ejecuta el fondo animado del tema actual (lo usa el servicio)."""
+    off = STATE / "animado-off"
+    if action == "off":
+        STATE.mkdir(parents=True, exist_ok=True)
+        off.touch()
+        subprocess.run(["systemctl", "--user", "stop", "tema-animado.service"], check=False)
+        print("Fondo animado desactivado.")
+        return
+    if action == "on":
+        off.unlink(missing_ok=True)
+        subprocess.run(["systemctl", "--user", "restart", "tema-animado.service"], check=False)
+        print("Fondo animado activado (si el tema actual tiene uno).")
+        return
+    script = DATA / (current() or "") / "animado"
+    if off.exists() or not os.access(script, os.X_OK):
+        return
+    os.execv(script, [str(script)])
+
+
 def apply(name):
     c = download(name)
     mode = c.get("mode", "dark")
@@ -251,6 +287,8 @@ def apply(name):
     wall = wallpaper(name)
     STATE.mkdir(parents=True, exist_ok=True)
     (STATE / "actual").write_text(name)
+    # El servicio arranca el `animado` del tema nuevo, o termina si no tiene
+    subprocess.run(["systemctl", "--user", "restart", "tema-animado.service"], check=False)
     print(f"Tema {name} aplicado ({mode}, acento {accent}, fondo {wall or '—'}).")
     print("Ghostty se recargó; btop toma el tema al volver a abrirlo.")
 
@@ -268,6 +306,9 @@ def main():
         return
     if args[0] in ("-h", "--help", "ayuda"):
         print(__doc__.strip())
+        return
+    if args[0] == "animado":
+        animated(args[1] if len(args) > 1 else None)
         return
     if args[0] == "fondo":
         cur = current() or "tokyo-night"

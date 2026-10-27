@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""Lluvia de código estilo Matrix como fondo de escritorio animado.
+
+Abre una ventana de tipo DESKTOP (debajo de todas las demás, en todos los
+escritorios, sin foco) y dibuja la lluvia con cairo. Los glifos se
+pre-renderizan una vez, así cada cuadro es sólo un fundido + algunos blits.
+
+Variables de entorno opcionales:
+  MATRIX_FPS   cuadros por segundo (default 15)
+  MATRIX_SIZE  tamaño de letra en px (default 18)
+"""
+import os
+import random
+import signal
+
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+import cairo  # noqa: E402
+
+FPS = int(os.environ.get("MATRIX_FPS", "15"))
+SIZE = int(os.environ.get("MATRIX_SIZE", "18"))
+FONT = f"Noto Sans Mono CJK JP, Noto Sans CJK JP, JetBrainsMono Nerd Font {SIZE}px"
+
+BG = (0x0d / 255, 0x02 / 255, 0x08 / 255)
+GREEN = (0x00 / 255, 0xff / 255, 0x41 / 255)
+DIM = (0x00 / 255, 0x8f / 255, 0x11 / 255)
+HEAD = (0xd8 / 255, 0xff / 255, 0xe0 / 255)
+
+# Katakana de media anchura (como en la película) + dígitos + algunos símbolos
+CHARS = [chr(c) for c in range(0xFF66, 0xFF9E)] + list("0123456789Z:.\"=*+-<>¦|")
+
+
+def render_glyphs(color, cell_w, cell_h):
+    """Pre-renderiza cada carácter en una superficie pequeña."""
+    glyphs = []
+    desc = Pango.FontDescription.from_string(FONT)
+    for ch in CHARS:
+        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, cell_w, cell_h)
+        cr = cairo.Context(surf)
+        layout = PangoCairo.create_layout(cr)
+        layout.set_font_description(desc)
+        layout.set_text(ch, -1)
+        _, log = layout.get_pixel_extents()
+        cr.set_source_rgb(*color)
+        # Espejado horizontal, como en la película
+        cr.translate(cell_w, 0)
+        cr.scale(-1, 1)
+        cr.move_to((cell_w - log.width) / 2, (cell_h - log.height) / 2)
+        PangoCairo.show_layout(cr, layout)
+        glyphs.append(surf)
+    return glyphs
+
+
+class Rain(Gtk.Window):
+    def __init__(self):
+        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        # Cubre todos los monitores (unión de sus geometrías)
+        display = Gdk.Display.get_default()
+        geoms = [display.get_monitor(i).get_geometry() for i in range(display.get_n_monitors())]
+        self.w = max(g.x + g.width for g in geoms)
+        self.h = max(g.y + g.height for g in geoms)
+
+        self.set_title("matrix-rain")
+        self.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
+        self.set_decorated(False)
+        self.set_keep_below(True)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_accept_focus(False)
+        self.set_app_paintable(True)
+        self.stick()
+        self.move(0, 0)
+        self.set_default_size(self.w, self.h)
+
+        self.cell_w, self.cell_h = int(SIZE * 0.75), int(SIZE * 1.15)
+        self.cols = self.w // self.cell_w + 1
+        self.rows = self.h // self.cell_h + 1
+        self.green = render_glyphs(GREEN, self.cell_w, self.cell_h)
+        self.dim = render_glyphs(DIM, self.cell_w, self.cell_h)
+        self.head = render_glyphs(HEAD, self.cell_w, self.cell_h)
+
+        # Cada columna: posición, velocidad (cuadros por paso) y contador
+        self.drops = [random.randint(-self.rows, 0) for _ in range(self.cols)]
+        self.speed = [random.choice((1, 1, 1, 2, 2, 3)) for _ in range(self.cols)]
+        self.tick = [0] * self.cols
+        self.prev = [0] * self.cols
+
+        self.buf = cairo.ImageSurface(cairo.FORMAT_RGB24, self.w, self.h)
+        cr = cairo.Context(self.buf)
+        cr.set_source_rgb(*BG)
+        cr.paint()
+
+        self.connect("draw", self.on_draw)
+        self.connect("destroy", Gtk.main_quit)
+        GLib.timeout_add(1000 // FPS, self.step)
+
+    def step(self):
+        cr = cairo.Context(self.buf)
+        # Fundido: cada cuadro oscurece un poco todo, dejando la estela
+        cr.set_source_rgba(*BG, 0.09)
+        cr.paint()
+        for i in range(self.cols):
+            self.tick[i] += 1
+            if self.tick[i] < self.speed[i]:
+                continue
+            self.tick[i] = 0
+            x, y = i * self.cell_w, self.drops[i] * self.cell_h
+            if self.drops[i] > 0:
+                # El carácter anterior pasa de "cabeza" blanca a verde
+                g = self.green if random.random() > 0.3 else self.dim
+                cr.set_source_surface(g[self.prev[i]], x, y - self.cell_h)
+                cr.paint()
+            if self.drops[i] >= 0:
+                self.prev[i] = random.randrange(len(CHARS))
+                cr.set_source_surface(self.head[self.prev[i]], x, y)
+                cr.paint()
+            self.drops[i] += 1
+            if self.drops[i] > self.rows and random.random() > 0.96:
+                self.drops[i] = random.randint(-8, 0)
+                self.speed[i] = random.choice((1, 1, 1, 2, 2, 3))
+        self.queue_draw()
+        return True
+
+    def on_draw(self, _widget, cr):
+        cr.set_source_surface(self.buf, 0, 0)
+        cr.paint()
+        return True
+
+
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    win = Rain()
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

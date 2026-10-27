@@ -16,7 +16,7 @@ window-padding-balance = true
 window-decoration = auto
 window-theme = auto
 background-opacity = 0.95
-confirm-close-surface = false
+confirm-close-surface = true
 resize-overlay = never
 
 # Cursor

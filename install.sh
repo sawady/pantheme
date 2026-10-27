@@ -76,6 +76,22 @@ configs() {
   put config/lazydocker/config.yml             "$CFG/lazydocker/config.yml"
   put config/systemd/user/tema-fondo.service   "$CFG/systemd/user/tema-fondo.service"
   put config/systemd/user/tema-fondo.timer     "$CFG/systemd/user/tema-fondo.timer"
+  put config/systemd/user/tema-animado.service "$CFG/systemd/user/tema-animado.service"
+  put config/autostart/tema-animado.desktop    "$CFG/autostart/tema-animado.desktop"
+  put config/zed/themes/matrix.json            "$CFG/zed/themes/matrix.json"
+
+  # Temas propios (p. ej. matrix): paleta, fondo animado y fondos estáticos
+  local t name
+  for t in "$REPO"/temas/*/; do
+    name="$(basename "$t")"
+    put "temas/$name/colors.toml" "$HOME/.local/share/tema/$name/colors.toml"
+    if [ -f "$t/animado" ]; then
+      put "temas/$name/animado" "$HOME/.local/share/tema/$name/animado"
+      chmod +x "$HOME/.local/share/tema/$name/animado"
+    fi
+    mkdir -p "$HOME/Pictures/Wallpapers/$name"
+    cp "$t"/fondos/*.jpg "$HOME/Pictures/Wallpapers/$name/" 2>/dev/null || true
+  done
 }
 
 shell() {

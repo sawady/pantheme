@@ -44,3 +44,25 @@ ventanas entre escritorios.
 ### Descartado
 - Web apps, tmux/zellij y LazyVim: no interesan.
 - Hyprland o i3: quizás más adelante.
+
+## 2026-10-26: Tema Matrix
+
+- **Tema propio `matrix`**: no hay uno así en Omarchy (el más parecido es
+  `hackerman`). Paleta verde fósforo (`#00ff41`) sobre `#0d0208`; se mantiene un
+  rojo para errores y borrados, para que los diffs se sigan leyendo bien.
+- **Fondo animado** con lluvia de katakana espejado, como en la película. Es una
+  ventana GTK3 de tipo DESKTOP (debajo de todo, en todos los escritorios, sin
+  foco), dibujada con cairo y con los glifos pre-renderizados. Consume ~7 % de un
+  núcleo a 15 fps. Lo maneja el servicio `tema-animado.service`, que arranca al
+  iniciar sesión (`~/.config/autostart`).
+  - Se eligió esto en lugar de xwinwrap o xscreensaver porque no requiere
+    paquetes nuevos ni compilar nada.
+- Fondo estático de respaldo (`1-lluvia.jpg`) generado con PIL, para la
+  pantalla de bloqueo y la vista de escritorios.
+- **Zed:** tema propio `Matrix` en `~/.config/zed/themes/matrix.json`.
+- **`tema` ahora admite:**
+  - temas locales en `~/.local/share/tema/<nombre>/`
+  - ajustes por tema de la paleta de Starship (tabla `[starship]`, para tener
+    texto oscuro sobre verde)
+  - `tema animado on|off`
+- **Corregido:** `capturar.sh` se cortaba en silencio si faltaba algún archivo.
