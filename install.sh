@@ -114,17 +114,28 @@ paso_ghostty() {
     return
   fi
   say "Ghostty (paquete .deb de github.com/mkasberg/ghostty-ubuntu)"
-  curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh | bash
+  if ! curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh | bash; then
+    gh_error "el instalador de Ghostty"
+    return 1
+  fi
+}
+
+gh_error() {
+  echo "Falló $1 (consulta GitHub). Si es el límite de pedidos de la API de GitHub" >&2
+  echo "(60 por hora sin autenticar), esperá un rato o definí GITHUB_TOKEN." >&2
 }
 
 # Descarga el asset de la última release de un repo de GitHub
 gh_latest() {  # repo regex salida
   local url auth=()
   [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
-  url=$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/$1/releases/latest" |
+  if ! url=$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/$1/releases/latest" |
     python3 -c 'import json, re, sys
 assets = json.load(sys.stdin)["assets"]
-print([a["browser_download_url"] for a in assets if re.search(sys.argv[1], a["name"], re.I)][0])' "$2")
+print([a["browser_download_url"] for a in assets if re.search(sys.argv[1], a["name"], re.I)][0])' "$2"); then
+    gh_error "la consulta de la última versión de $1"
+    return 1
+  fi
   curl -fsSL -o "$3" "$url"
 }
 
