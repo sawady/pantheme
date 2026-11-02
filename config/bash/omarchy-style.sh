@@ -1,4 +1,6 @@
-# Estilo Omarchy para bash — cargado desde ~/.bashrc
+# shellcheck shell=bash
+# Prompt, aliases y herramientas para bash (inspirado en Omarchy).
+# Lo carga una línea al final de ~/.bashrc (./install.sh shell).
 # Cada herramienta se activa sólo si está instalada.
 
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -31,6 +33,7 @@ if have fzf; then
     --color=fg:-1,bg:-1,gutter:-1,bg+:black,fg+:bright-white,query:bright-white \
     --color=hl:blue,hl+:bright-blue,border:bright-black,scrollbar:bright-black,info:bright-black \
     --color=prompt:cyan,pointer:magenta,marker:magenta,spinner:magenta,header:yellow,separator:bright-black"
+  # shellcheck source=/dev/null
   [ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && . /usr/share/doc/fzf/examples/key-bindings.bash
   alias ff='fzf --preview "batcat --color=always --style=numbers {} 2>/dev/null || cat {}"'
 fi

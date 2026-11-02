@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""tema — cambiador de temas estilo Omarchy para elementary OS.
+"""tema — cambiador de temas para elementary OS, inspirado en Omarchy.
 
-Usa las paletas y fondos de los temas de Omarchy (github.com/basecamp/omarchy)
-y aplica el tema a Ghostty, Starship, btop, Zed, el fondo de pantalla y el
+Descarga las paletas y fondos de los temas de Omarchy (github.com/omacom/omarchy,
+licencia MIT; los fondos son de sus autores) y aplica el tema a Ghostty, Starship, btop, Zed, el fondo de pantalla y el
 color de acento / modo claro-oscuro de Pantheon.
 
 Uso:
@@ -14,6 +14,11 @@ Uso:
 Temas propios: una carpeta en ~/.local/share/tema/<nombre>/ con colors.toml
 (mismo formato que Omarchy, con una tabla [starship] opcional para ajustar
 la paleta del prompt) y opcionalmente un ejecutable `animado`.
+
+Variables de entorno:
+  TEMA_WALLPAPERS  carpeta de fondos (por defecto ~/Pictures/Wallpapers, o la
+                   carpeta de imágenes de XDG + /Wallpapers si aquella no existe)
+  GITHUB_TOKEN     token opcional para la API de GitHub (evita el límite de pedidos)
 """
 import colorsys
 import json
@@ -29,8 +34,24 @@ from pathlib import Path
 HOME = Path.home()
 DATA = HOME / ".local/share/tema"
 STATE = HOME / ".config/tema"
-WALLS = HOME / "Pictures/Wallpapers"
-API = "https://api.github.com/repos/basecamp/omarchy/contents/themes"
+API = "https://api.github.com/repos/omacom/omarchy/contents/themes"
+
+
+def wallpapers_dir():
+    if os.environ.get("TEMA_WALLPAPERS"):
+        return Path(os.environ["TEMA_WALLPAPERS"]).expanduser()
+    default = HOME / "Pictures/Wallpapers"
+    if default.is_dir():
+        return default
+    try:
+        pics = subprocess.run(["xdg-user-dir", "PICTURES"], capture_output=True, text=True).stdout.strip()
+    except FileNotFoundError:
+        pics = ""
+    # Sin configurar, xdg-user-dir devuelve $HOME
+    return Path(pics) / "Wallpapers" if pics and Path(pics) != HOME else default
+
+
+WALLS = wallpapers_dir()
 
 # Tema de Zed para cada tema de Omarchy (los que tienen equivalente)
 ZED = {
@@ -56,13 +77,24 @@ ACCENT_OVERRIDE = {"tokyo-night": "grape"}
 
 # ---------------------------------------------------------------- utilidades
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "tema"})
+    headers = {"User-Agent": "tema"}
+    if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read()
 
 
+def run(*cmd):
+    """Ejecuta un comando si existe (fuera del escritorio puede no haber gsettings)."""
+    try:
+        return subprocess.run(cmd, check=False, capture_output=True, text=True)
+    except FileNotFoundError:
+        return None
+
+
 def gset(schema, key, value):
-    subprocess.run(["gsettings", "set", schema, key, value], check=False)
+    run("gsettings", "set", schema, key, value)
 
 
 def current():
@@ -152,12 +184,14 @@ def ghostty(c):
     ]
     (tdir / "tema").write_text("# Generado por `tema`\n" + "\n".join(lines) + "\n")
     cfg = HOME / ".config/ghostty/config"
-    txt = cfg.read_text()
-    txt = re.sub(r"(?m)^theme\s*=.*$", "theme = tema", txt)
-    txt = re.sub(r"(?m)^window-theme\s*=.*$", "window-theme = auto", txt)
-    cfg.write_text(txt)
+    if cfg.exists():
+        txt = cfg.read_text()
+        txt = re.sub(r"(?m)^theme\s*=.*$", "theme = tema", txt)
+        txt = re.sub(r"(?m)^window-theme\s*=.*$", "window-theme = auto", txt)
+        cfg.write_text(txt)
     # Recargar ventanas abiertas, sólo si el proceso atiende SIGUSR2
-    for pid in subprocess.run(["pgrep", "-x", "ghostty"], capture_output=True, text=True).stdout.split():
+    pgrep = run("pgrep", "-x", "ghostty")
+    for pid in (pgrep.stdout.split() if pgrep else []):
         try:
             caught = int(re.search(r"SigCgt:\s*(\w+)", Path(f"/proc/{pid}/status").read_text()).group(1), 16)
             if caught & (1 << 11):
@@ -262,12 +296,12 @@ def animated(action=None):
     if action == "off":
         STATE.mkdir(parents=True, exist_ok=True)
         off.touch()
-        subprocess.run(["systemctl", "--user", "stop", "tema-animado.service"], check=False)
+        run("systemctl", "--user", "stop", "tema-animado.service")
         print("Fondo animado desactivado.")
         return
     if action == "on":
         off.unlink(missing_ok=True)
-        subprocess.run(["systemctl", "--user", "restart", "tema-animado.service"], check=False)
+        run("systemctl", "--user", "restart", "tema-animado.service")
         print("Fondo animado activado (si el tema actual tiene uno).")
         return
     script = DATA / (current() or "") / "animado"
@@ -288,7 +322,7 @@ def apply(name):
     STATE.mkdir(parents=True, exist_ok=True)
     (STATE / "actual").write_text(name)
     # El servicio arranca el `animado` del tema nuevo, o termina si no tiene
-    subprocess.run(["systemctl", "--user", "restart", "tema-animado.service"], check=False)
+    run("systemctl", "--user", "restart", "tema-animado.service")
     print(f"Tema {name} aplicado ({mode}, acento {accent}, fondo {wall or '—'}).")
     print("Ghostty se recargó; btop toma el tema al volver a abrirlo.")
 

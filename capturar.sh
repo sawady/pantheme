@@ -33,5 +33,6 @@ done
 # No se capturan: btop.conf (btop lo reescribe entero) ni zed/settings.json (tokens).
 
 echo
+echo "Ojo: config/starship.toml trae la paleta del tema actual; en el repo va la de Tokyo Night."
 echo "Tema actual: $(cat "$CFG/tema/actual" 2>/dev/null || echo '—')"
 git -C "$REPO" status --short
