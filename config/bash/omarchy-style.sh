@@ -3,6 +3,13 @@
 # Lo carga una línea al final de ~/.bashrc (./install.sh shell).
 # Cada herramienta se activa sólo si está instalada.
 
+# ~/.local/bin (Starship, fastfetch, tema…). Ubuntu's ~/.profile only adds it
+# if it already existed at login, which isn't the case right after installing.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) [ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # Historial más útil

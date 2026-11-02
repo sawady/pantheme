@@ -45,6 +45,10 @@ ok "fuente"
 
 [ "$(grep -c 'omarchy-style.sh' "$HOME/.bashrc")" = 1 ] || fail ".bashrc sin la línea"
 bash -c '. ~/.config/bash/omarchy-style.sh' || fail "omarchy-style.sh no carga"
+# Recién instalado, la sesión no tiene ~/.local/bin en el PATH (~/.profile sólo
+# lo agrega si existía al iniciar sesión): omarchy-style.sh lo tiene que sumar.
+env PATH=/usr/bin:/bin bash -c '. ~/.config/bash/omarchy-style.sh && command -v starship && command -v tema' \
+  >/dev/null || fail "omarchy-style.sh no agrega ~/.local/bin al PATH"
 ok "shell"
 
 [ "$(cat "$HOME/.config/tema/actual")" = tokyo-night ] || fail "tema actual"
@@ -91,6 +95,20 @@ echo "== desinstalar sin nada registrado"
 rm -rf "$STATE"
 if "$REPO/install.sh" desinstalar; then fail "debería fallar sin registro"; fi
 ok "sin registro"
+
+echo "== .bashrc sin salto de línea final (como el de elementary OS)"
+printf '# bashrc original\nexport FOO=1' > "$HOME/.bashrc"
+cp "$HOME/.bashrc" /tmp/bashrc-sin-salto.orig
+"$REPO/install.sh" shell >/dev/null
+"$REPO/install.sh" desinstalar shell >/dev/null
+cmp -s "$HOME/.bashrc" /tmp/bashrc-sin-salto.orig || { od -c "$HOME/.bashrc" | tail -3; fail ".bashrc sin salto final"; }
+# Con algo agregado después de nuestra línea: se quitan sólo nuestras líneas
+"$REPO/install.sh" shell >/dev/null
+echo 'export BAR=2' >> "$HOME/.bashrc"
+"$REPO/install.sh" desinstalar shell >/dev/null
+grep -q omarchy-style "$HOME/.bashrc" && fail "quedó la línea de .bashrc"
+grep -qx 'export BAR=2' "$HOME/.bashrc" || fail "se perdió lo agregado después"
+ok ".bashrc exacto"
 
 echo
 echo "Smoke test OK"

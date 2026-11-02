@@ -205,6 +205,8 @@ wallpapers_dir() {
 
 paso_shell() {
   say "Cargar omarchy-style.sh desde ~/.bashrc"
+  # Sin archivos que registrar: alcanza con que exista el registro para poder desinstalar
+  mkdir -p "$STATE" && touch "$MANIFEST"
   touch "$HOME/.bashrc"
   if ! grep -qxF "$BASHRC_LINE" "$HOME/.bashrc"; then
     printf '\n%s\n%s\n' "$BASHRC_COMMENT" "$BASHRC_LINE" >> "$HOME/.bashrc"
@@ -337,7 +339,20 @@ quitar_shell() {
   grep -qxF "$BASHRC_LINE" "$HOME/.bashrc" || return 0
   mkdir -p "$TRASH"
   cp -a "$HOME/.bashrc" "$TRASH/.bashrc"
-  # Quita nuestras líneas y la línea en blanco que agregamos antes
+  # Si nada se agregó después, el archivo termina con el bloque exacto que
+  # escribió `paso_shell`: se recortan esos bytes y queda idéntico al original
+  # (aunque no terminara en salto de línea, como el .bashrc de elementary).
+  local c n
+  for c in "$BASHRC_COMMENT" "$BASHRC_COMMENT_OLD" "$BASHRC_COMMENT_OLD2"; do
+    printf '\n%s\n%s\n' "$c" "$BASHRC_LINE" > "$TMP/bloque"
+    n=$(wc -c < "$TMP/bloque")
+    if tail -c "$n" "$TRASH/.bashrc" | cmp -s - "$TMP/bloque"; then
+      head -c -"$n" "$TRASH/.bashrc" > "$HOME/.bashrc"
+      echo "  quitada la línea de ~/.bashrc (copia en $TRASH/.bashrc)"
+      return 0
+    fi
+  done
+  # Si no, quita nuestras líneas y la línea en blanco que agregamos antes
   L="$BASHRC_LINE" C1="$BASHRC_COMMENT" C2="$BASHRC_COMMENT_OLD" C3="$BASHRC_COMMENT_OLD2" awk '
     $0 == ENVIRON["L"] || $0 == ENVIRON["C1"] || $0 == ENVIRON["C2"] || $0 == ENVIRON["C3"] { blank = 0; next }
     $0 == "" { if (blank) print ""; blank = 1; next }
