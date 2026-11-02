@@ -1,5 +1,7 @@
 # pantheme
 
+[![Sponsor](https://img.shields.io/github/sponsors/sawady?label=Sponsor&logo=GitHub)](https://github.com/sponsors/sawady)
+
 [English](README.md) · Español
 
 Instalador por pasos para **elementary OS 8** (Pantheon, X11): terminal
@@ -132,6 +134,11 @@ se descargan al usar `tema`; no están en este repo y los **fondos son de sus
 autores**. `config/starship.toml` parte del preset Tokyo Night de Starship
 (ISC). El tema Matrix y su fondo animado son propios. Detalle en el
 [README en inglés](README.md#credits).
+
+## Apoyar el proyecto
+
+pantheme es software libre. Si te resulta útil, podés apoyar su desarrollo con
+[GitHub Sponsors](https://github.com/sponsors/sawady).
 
 ## Licencia
 

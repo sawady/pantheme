@@ -1,5 +1,7 @@
 # pantheme
 
+[![Sponsor](https://img.shields.io/github/sponsors/sawady?label=Sponsor&logo=GitHub)](https://github.com/sponsors/sawady)
+
 English · [Español](README.es.md)
 
 A step-by-step setup for **elementary OS 8** (Pantheon, X11) that gives you a
@@ -244,6 +246,11 @@ This project is not affiliated with Omarchy, Basecamp or elementary, Inc.
   [mkasberg/ghostty-ubuntu](https://github.com/mkasberg/ghostty-ubuntu).
 - The Matrix theme and its animated wallpaper are original work, a homage to
   the film; "The Matrix" is a trademark of Warner Bros.
+
+## Sponsoring
+
+pantheme is free software. If it is useful to you, you can support its development through
+[GitHub Sponsors](https://github.com/sponsors/sawady).
 
 ## License
 
