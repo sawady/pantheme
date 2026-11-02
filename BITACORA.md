@@ -4,10 +4,14 @@ Registro de lo que se fue haciendo en la máquina, con la decisión detrás.
 
 ## 2026-11-02 — Preparación para publicar
 
+- **Nuevo nombre: pantheme** (antes `elementary-setup`). El registro de lo
+  instalado pasa a `~/.local/state/pantheme/`; el instalador mueve el viejo
+  solo, y al desinstalar también reconoce el comentario viejo de `.bashrc`.
+
 - Licencia MIT, README en inglés (con `README.es.md`) y créditos a Omarchy,
   Starship y las herramientas que se instalan.
 - **`install.sh desinstalar [paso...]`**: el instalador registra lo que escribe
-  (`~/.local/state/elementary-setup/manifest`), guarda los originales y el valor
+  (`~/.local/state/pantheme/manifest`), guarda los originales y el valor
   previo de cada clave de gsettings, y al desinstalar lo repone todo.
 - Pasos opcionales: `zed`, `fondos` y `animado` sólo se instalan si se nombran;
   Ghostty pasa a su propio paso.

@@ -1,4 +1,4 @@
-# elementary-setup
+# pantheme
 
 [English](README.md) · Español
 
@@ -29,8 +29,8 @@ elementary OS 8 en sesión **X11**, x86_64, internet y `sudo` (sólo para apt).
 ## Instalación
 
 ```bash
-git clone https://github.com/sawady/elementary-setup.git
-cd elementary-setup
+git clone https://github.com/sawady/pantheme.git ~/pantheme
+cd ~/pantheme
 ./install.sh                    # pasos por defecto
 ./install.sh todo zed fondos    # por defecto + algunos opcionales
 ./install.sh atajos             # o sólo algunos pasos
@@ -59,7 +59,7 @@ Opcionales (sólo si se nombran): `zed` (tema Matrix y ajustes de Zed),
 ```
 
 El instalador registra cada archivo que escribe en
-`~/.local/state/elementary-setup/manifest`, guarda los originales en
+`~/.local/state/pantheme/manifest`, guarda los originales en
 `backup/` y anota el valor previo de cada ajuste de gsettings que cambia. Al
 desinstalar repone los originales (o saca lo nuestro, moviéndolo a
 `desinstalado-<fecha>/`), quita la línea de `~/.bashrc`, restaura dock,
@@ -70,6 +70,22 @@ No se deshace: paquetes de apt y Ghostty (se imprime cómo quitarlos), fondos
 descargados y `~/.config/zed/settings.json`. Si instalaste antes de que
 existiera el registro, corré `./install.sh` una vez más con los mismos pasos y
 después desinstalá.
+
+### Si venís de `elementary-setup`
+
+El proyecto antes se llamaba `elementary-setup`. Lo instalado no depende de
+dónde esté el clon, así que alcanza con moverlo:
+
+```bash
+mv ~/elementary-setup ~/pantheme
+git -C ~/pantheme remote set-url origin https://github.com/sawady/pantheme.git
+git -C ~/pantheme pull
+```
+
+La próxima vez que corras `./install.sh` (cualquier paso, o `desinstalar`)
+mueve el registro de `~/.local/state/elementary-setup/` a
+`~/.local/state/pantheme/`, así lo instalado con el nombre viejo se puede
+seguir desinstalando.
 
 ## `tema`
 

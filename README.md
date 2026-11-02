@@ -1,4 +1,4 @@
-# elementary-setup
+# pantheme
 
 English · [Español](README.es.md)
 
@@ -36,8 +36,8 @@ the elementary desktop.
 ## Install
 
 ```bash
-git clone https://github.com/sawady/elementary-setup.git
-cd elementary-setup
+git clone https://github.com/sawady/pantheme.git ~/pantheme
+cd ~/pantheme
 ./install.sh                    # default steps
 ./install.sh todo zed fondos    # default steps + some optional ones
 ./install.sh atajos             # or just some steps
@@ -75,12 +75,12 @@ Optional steps (only when you name them):
 ```
 
 The installer records every file it writes in
-`~/.local/state/elementary-setup/manifest` and keeps the files it replaced in
-`~/.local/state/elementary-setup/backup/`. It also saves the previous value of
+`~/.local/state/pantheme/manifest` and keeps the files it replaced in
+`~/.local/state/pantheme/backup/`. It also saves the previous value of
 every desktop setting (gsettings) it changes. Uninstalling:
 
 - restores the original files, or removes ours if there was none (removed
-  files are moved to `~/.local/state/elementary-setup/desinstalado-<date>/`,
+  files are moved to `~/.local/state/pantheme/desinstalado-<date>/`,
   not deleted);
 - removes the line from `~/.bashrc`;
 - restores the dock, default terminal, shortcuts, accent, light/dark mode and
@@ -98,6 +98,23 @@ To reset only the shortcuts to elementary's factory defaults:
 > Installed before the uninstaller existed? Run `./install.sh` once more with
 > the steps you used; it registers the existing install (using the oldest
 > `~/.config-backup-*` as the original) and then `desinstalar` works.
+
+### Migrating from `elementary-setup`
+
+This project used to be called `elementary-setup`. Nothing installed depends
+on where the repository is cloned, so an existing clone can just be moved:
+
+```bash
+mv ~/elementary-setup ~/pantheme
+git -C ~/pantheme remote set-url origin https://github.com/sawady/pantheme.git
+git -C ~/pantheme pull
+```
+
+The next time you run `./install.sh` (any step, or `desinstalar`), it moves
+the old record from `~/.local/state/elementary-setup/` to
+`~/.local/state/pantheme/`, so everything installed under the old name can
+still be uninstalled. Installs older than the record itself: see the note
+above.
 
 ## `tema`, the theme switcher
 

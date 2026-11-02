@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instalador por pasos para elementary OS 8 (inspirado en Omarchy).
+# pantheme — instalador por pasos para elementary OS 8 (inspirado en Omarchy).
 #
 #   ./install.sh                         pasos por defecto
 #   ./install.sh <paso>...               sólo esos pasos (también los opcionales)
@@ -10,11 +10,11 @@
 # Opcionales:  zed fondos animado
 #
 # Cada archivo que escribe el instalador queda registrado en
-# ~/.local/state/elementary-setup/manifest; si ya existía, el original se
-# guarda en ~/.local/state/elementary-setup/backup/ la primera vez.
+# ~/.local/state/pantheme/manifest; si ya existía, el original se
+# guarda en ~/.local/state/pantheme/backup/ la primera vez.
 set -euo pipefail
 
-NAME=elementary-setup
+NAME=pantheme
 REPO="$(cd "$(dirname "$0")" && pwd)"
 BIN="$HOME/.local/bin"
 CFG="$HOME/.config"
@@ -30,6 +30,7 @@ PACKAGES=(btop eza bat fzf zoxide curl ca-certificates python3 python3-pil fontc
 BASHRC_LINE='[ -f ~/.config/bash/omarchy-style.sh ] && . ~/.config/bash/omarchy-style.sh'
 BASHRC_COMMENT="# $NAME: prompt, aliases y herramientas"
 BASHRC_COMMENT_OLD='# Estilo Omarchy (prompt, aliases, herramientas)'
+BASHRC_COMMENT_OLD2='# elementary-setup: prompt, aliases y herramientas'
 
 SUDO=
 [ "$(id -u)" -eq 0 ] || SUDO=sudo
@@ -43,6 +44,15 @@ usage() {
 }
 
 # ------------------------------------------------------------ registro
+# El proyecto se llamaba elementary-setup: si hay un registro con ese nombre,
+# se mueve al nuevo para poder seguir desinstalando.
+OLD_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/elementary-setup"
+if [ -d "$OLD_STATE" ] && [ ! -e "$STATE" ]; then
+  mkdir -p "$(dirname "$STATE")"
+  mv "$OLD_STATE" "$STATE"
+  echo "Registro movido de $OLD_STATE a $STATE."
+fi
+
 # Instalaciones anteriores al manifiesto: no hay manifiesto pero sí `tema`.
 # En ese caso no se respalda lo que hay (ya es nuestro), salvo que exista un
 # respaldo viejo en ~/.config-backup-*/ (se usa el más antiguo).
@@ -328,8 +338,8 @@ quitar_shell() {
   mkdir -p "$TRASH"
   cp -a "$HOME/.bashrc" "$TRASH/.bashrc"
   # Quita nuestras líneas y la línea en blanco que agregamos antes
-  L="$BASHRC_LINE" C1="$BASHRC_COMMENT" C2="$BASHRC_COMMENT_OLD" awk '
-    $0 == ENVIRON["L"] || $0 == ENVIRON["C1"] || $0 == ENVIRON["C2"] { blank = 0; next }
+  L="$BASHRC_LINE" C1="$BASHRC_COMMENT" C2="$BASHRC_COMMENT_OLD" C3="$BASHRC_COMMENT_OLD2" awk '
+    $0 == ENVIRON["L"] || $0 == ENVIRON["C1"] || $0 == ENVIRON["C2"] || $0 == ENVIRON["C3"] { blank = 0; next }
     $0 == "" { if (blank) print ""; blank = 1; next }
     { if (blank) print ""; blank = 0; print }
     END { if (blank) print "" }

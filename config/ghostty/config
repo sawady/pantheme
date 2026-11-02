@@ -1,5 +1,5 @@
 # Ghostty — los colores salen de themes/tema, que genera `tema`
-# El original, si había, queda en ~/.local/state/elementary-setup/backup
+# El original, si había, queda en ~/.local/state/pantheme/backup
 
 # Tema
 theme = tema

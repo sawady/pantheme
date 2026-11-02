@@ -16,6 +16,8 @@ fi
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 export DEBIAN_FRONTEND=noninteractive
 export PATH="$HOME/.local/bin:$PATH"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/pantheme"
+OLD_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/elementary-setup"
 fail() { echo "FALLÓ: $*" >&2; exit 1; }
 ok()   { echo "ok: $*"; }
 
@@ -71,11 +73,22 @@ for p in .local/bin/tema .local/bin/starship .local/bin/lazygit .config/starship
          .local/share/fonts/JetBrainsMonoNerd .config/ghostty/themes/tema; do
   [ ! -e "$HOME/$p" ] || fail "quedó ~/$p"
 done
-[ ! -s "${XDG_STATE_HOME:-$HOME/.local/state}/elementary-setup/manifest" ] || fail "el manifiesto no quedó vacío"
+[ ! -s "$STATE/manifest" ] || fail "el manifiesto no quedó vacío"
 ok "desinstalado"
 
+echo "== migrar un registro con el nombre viejo (elementary-setup)"
+"$REPO/install.sh" configs shell >/dev/null
+mv "$STATE" "$OLD_STATE"
+sed -i 's/^# pantheme: /# elementary-setup: /' "$HOME/.bashrc"
+"$REPO/install.sh" desinstalar
+[ ! -e "$OLD_STATE" ] || fail "quedó el registro viejo"
+cmp -s "$HOME/.bashrc" /tmp/bashrc.orig || { diff /tmp/bashrc.orig "$HOME/.bashrc"; fail ".bashrc tras migrar"; }
+cmp -s "$HOME/.config/ghostty/config" /tmp/ghostty.orig || fail "ghostty tras migrar"
+[ ! -e "$HOME/.config/starship.toml" ] || fail "quedó starship.toml tras migrar"
+ok "migración del registro"
+
 echo "== desinstalar sin nada registrado"
-rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/elementary-setup"
+rm -rf "$STATE"
 if "$REPO/install.sh" desinstalar; then fail "debería fallar sin registro"; fi
 ok "sin registro"
 
