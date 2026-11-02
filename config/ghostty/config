@@ -1,5 +1,5 @@
-# Ghostty — estilo Omarchy (Tokyo Night)
-# Backup del original en ~/.config-backup-*/ghostty
+# Ghostty — los colores salen de themes/tema, que genera `tema`
+# El original, si había, queda en ~/.local/state/pantheme/backup
 
 # Tema
 theme = tema

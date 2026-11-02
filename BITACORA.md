@@ -2,11 +2,31 @@
 
 Registro de lo que se fue haciendo en la máquina, con la decisión detrás.
 
-## 2026-09-29 — Setup inicial estilo Omarchy
+## 2026-11-02 — Preparación para publicar
+
+- **Nuevo nombre: pantheme** (antes `elementary-setup`). El registro de lo
+  instalado pasa a `~/.local/state/pantheme/`; el instalador mueve el viejo
+  solo, y al desinstalar también reconoce el comentario viejo de `.bashrc`.
+
+- Licencia MIT, README en inglés (con `README.es.md`) y créditos a Omarchy,
+  Starship y las herramientas que se instalan.
+- **`install.sh desinstalar [paso...]`**: el instalador registra lo que escribe
+  (`~/.local/state/pantheme/manifest`), guarda los originales y el valor
+  previo de cada clave de gsettings, y al desinstalar lo repone todo.
+- Pasos opcionales: `zed`, `fondos` y `animado` sólo se instalan si se nombran;
+  Ghostty pasa a su propio paso.
+- `escritorio` ya no reemplaza el dock entero (cambia la Terminal por Ghostty)
+  ni toca la fuente de la Terminal de elementary.
+- `tema`: usa `omacom/omarchy` (el repo se mudó), respeta la carpeta de imágenes
+  de XDG y `$TEMA_WALLPAPERS`, y funciona sin escritorio (para CI).
+- CI: shellcheck, py_compile y un smoke test en `ubuntu:24.04` que instala,
+  reinstala y desinstala.
+
+ — Setup inicial estilo Omarchy
 
 **Contexto:** elementary OS 8 (Pantheon, X11). Objetivo: estética parecida a
 Omarchy sin reemplazar el escritorio. Se descartó Hyprland por ahora (no está
-en los repos de Ubuntu 24.04 y la GPU es híbrida con NVIDIA).
+en los repos de Ubuntu 24.04 y hay riesgo con GPUs híbridas).
 
 ### Nivel 1: terminal
 - Instalados en `~/.local` (sin sudo): JetBrains Mono Nerd Font, Starship, fastfetch.

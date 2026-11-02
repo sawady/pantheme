@@ -1,119 +1,228 @@
-# elementary-setup
+# pantheme
 
-Configuración de mi máquina con **elementary OS 8** (Pantheon, X11) para que
-se vea y se use parecido a [Omarchy](https://omarchy.org): terminal Ghostty
-con Tokyo Night, prompt Starship, herramientas modernas de terminal, un
-cambiador de temas y atajos de teclado estilo Omarchy.
+English · [Español](README.es.md)
 
-Todo es reproducible con `./install.sh`. Registro de cambios en
-[BITACORA.md](BITACORA.md).
+A step-by-step setup for **elementary OS 8** (Pantheon, X11) that gives you a
+modern terminal, a one-command theme switcher and keyboard-driven window
+management, **inspired by [Omarchy](https://omarchy.org)**, without replacing
+the elementary desktop.
 
-## Instalación
+- **Ghostty** terminal with JetBrains Mono Nerd Font and a **Starship** prompt.
+- Modern CLI tools: eza, bat, fzf, zoxide, btop, fastfetch, lazygit, lazydocker.
+- **`tema`**: switch the whole look (terminal, prompt, btop, Zed, wallpaper,
+  Pantheon accent, light/dark) with one command, using the color palettes and
+  wallpapers of Omarchy's themes, plus themes of its own (like an animated
+  **Matrix** theme).
+- Keyboard shortcuts in the Omarchy spirit (Super+Enter, Super+W, Super+1–9…).
+- Every step can be **undone**: `./install.sh desinstalar`.
+
+> **Note:** step names and messages are in Spanish for now (`paquetes`,
+> `desinstalar`, `tema fondo`…). The tables below translate them.
+
+## Screenshots
+
+<!-- TODO(screenshots): take them on a clean elementary OS 8 VM and save under docs/screenshots/ -->
+- [ ] Desktop with Tokyo Night (Ghostty + Starship + fastfetch) — *pending*
+- [ ] `tema` listing themes and switching to Catppuccin Latte (light) — *pending*
+- [ ] btop and lazygit following the theme — *pending*
+- [ ] Matrix theme with the animated wallpaper (GIF) — *pending*
+
+## Requirements
+
+- elementary OS 8 (Ubuntu 24.04 base) on an **X11** Pantheon session.
+- x86_64 (the downloaded binaries are amd64 builds).
+- Internet access and `sudo` (only for `apt`).
+
+## Install
 
 ```bash
-git clone https://github.com/sawady/elementary-setup.git ~/elementary-setup
-cd ~/elementary-setup
-./install.sh            # todo; pide sudo sólo para apt
-./install.sh atajos     # o sólo algunos pasos
+git clone https://github.com/sawady/pantheme.git ~/pantheme
+cd ~/pantheme
+./install.sh                    # default steps
+./install.sh todo zed fondos    # default steps + some optional ones
+./install.sh atajos             # or just some steps
+./install.sh --help
 ```
 
-| Paso | Qué hace |
+### Steps
+
+Default steps (what `./install.sh` and `./install.sh todo` run):
+
+| Step | What it does |
 |---|---|
-| `paquetes` | apt: btop, eza, bat, fzf, zoxide, python3-pil (+ Ghostty si falta) |
-| `binarios` | Starship, fastfetch, lazygit, lazydocker, `tema` y JetBrains Mono Nerd Font en `~/.local` |
-| `configs` | Copia las configuraciones de `config/` a `~/.config` (respalda lo existente) |
-| `shell` | Agrega a `~/.bashrc` la línea que carga `omarchy-style.sh` |
-| `escritorio` | Ghostty en el dock y como terminal por defecto |
-| `atajos` | Atajos de teclado estilo Omarchy |
-| `zed` | Tema Tokyo Night en Zed (sólo si no existe `settings.json`) |
-| `fondos` | Timer de systemd que rota el fondo cada 30 min |
-| `tema` | Aplica Tokyo Night con `tema` (descarga paleta y fondos) |
+| `paquetes` | apt: btop, eza, bat, fzf, zoxide, python3-pil and a few basics |
+| `ghostty` | Installs Ghostty with the [ghostty-ubuntu](https://github.com/mkasberg/ghostty-ubuntu) installer, if it's missing |
+| `binarios` | Starship, fastfetch, lazygit, lazydocker, `tema` and JetBrains Mono Nerd Font into `~/.local` (latest GitHub releases) |
+| `configs` | Copies `config/` into `~/.config` and the bundled themes into `~/.local/share/tema` |
+| `shell` | Adds one line to `~/.bashrc` that loads `~/.config/bash/omarchy-style.sh` |
+| `escritorio` | Ghostty as default terminal and in the dock (replaces elementary's Terminal there; other launchers are kept) |
+| `atajos` | Keyboard shortcuts (see below) |
+| `tema` | Applies Tokyo Night with `tema` (set `TEMA_INICIAL=<theme>` to start with another one) |
 
-Para registrar cambios hechos a mano en la máquina: `./capturar.sh` y luego
-`git diff`.
+Optional steps (only when you name them):
 
-## Qué incluye
-
-### Terminal
-- **Ghostty** como terminal principal: JetBrains Mono Nerd Font 12, padding 14,
-  opacidad 0.95. La Terminal de elementary queda con su configuración de fábrica.
-- **Starship** con el preset Tokyo Night, con colores tomados de una paleta
-  (`[palettes.tema]`) que reescribe `tema`. elementary se muestra con 😎.
-- **fastfetch** (`fetch`), **btop** (`top`), **lazygit** (`lg`), **lazydocker** (`lzd`).
-- Aliases en `config/bash/omarchy-style.sh`:
-
-| Comando | Qué hace |
+| Step | What it does |
 |---|---|
-| `ls` `ll` `la` `lt` | eza con íconos y git (`lt` = árbol) |
-| `cat` | bat con resaltado de sintaxis |
-| `Ctrl+R` `Ctrl+T` `Alt+C` | fzf: historial, archivos, directorios |
-| `ff` | fzf con vista previa |
+| `zed` | Matrix theme for Zed, and the theme settings in `~/.config/zed/settings.json` if that file doesn't exist yet |
+| `fondos` | systemd user timer that rotates the wallpaper every 30 minutes |
+| `animado` | Animated wallpaper for themes that have one (Matrix), started at login |
+
+## Uninstall
+
+```bash
+./install.sh desinstalar              # undo everything
+./install.sh desinstalar atajos zed   # or only some steps
+```
+
+The installer records every file it writes in
+`~/.local/state/pantheme/manifest` and keeps the files it replaced in
+`~/.local/state/pantheme/backup/`. It also saves the previous value of
+every desktop setting (gsettings) it changes. Uninstalling:
+
+- restores the original files, or removes ours if there was none (removed
+  files are moved to `~/.local/state/pantheme/desinstalado-<date>/`,
+  not deleted);
+- removes the line from `~/.bashrc`;
+- restores the dock, default terminal, shortcuts, accent, light/dark mode and
+  wallpaper to their previous values;
+- disables the systemd timer and the animated wallpaper service;
+- removes the binaries and the font from `~/.local`.
+
+Not undone: apt packages and Ghostty (other programs may use them; the command
+to remove them is printed), downloaded wallpapers in `~/Pictures/Wallpapers`,
+and `~/.config/zed/settings.json`.
+
+To reset only the shortcuts to elementary's factory defaults:
+`./gsettings/atajos.sh --restaurar`.
+
+> Installed before the uninstaller existed? Run `./install.sh` once more with
+> the steps you used; it registers the existing install (using the oldest
+> `~/.config-backup-*` as the original) and then `desinstalar` works.
+
+### Migrating from `elementary-setup`
+
+This project used to be called `elementary-setup`. Nothing installed depends
+on where the repository is cloned, so an existing clone can just be moved:
+
+```bash
+mv ~/elementary-setup ~/pantheme
+git -C ~/pantheme remote set-url origin https://github.com/sawady/pantheme.git
+git -C ~/pantheme pull
+```
+
+The next time you run `./install.sh` (any step, or `desinstalar`), it moves
+the old record from `~/.local/state/elementary-setup/` to
+`~/.local/state/pantheme/`, so everything installed under the old name can
+still be uninstalled. Installs older than the record itself: see the note
+above.
+
+## `tema`, the theme switcher
+
+```bash
+tema                 # current theme + list
+tema catppuccin      # apply a theme (downloads it the first time)
+tema fondo           # next wallpaper of the current theme
+tema animado on|off  # animated wallpaper, for themes that have one
+```
+
+`tema` downloads the palette (`colors.toml`) and wallpapers of Omarchy's
+themes from GitHub and applies them to: Ghostty (open windows reload), the
+Starship palette, btop, Zed (when there's an equivalent theme), the wallpaper,
+the Pantheon accent color and light/dark mode.
+
+Wallpapers go to `~/Pictures/Wallpapers/<theme>/` (or `$TEMA_WALLPAPERS`).
+Set `GITHUB_TOKEN` if you hit GitHub's API rate limit.
+
+### Bundled themes
+
+- **`matrix`**: phosphor green on black, a Zed theme and an **animated
+  wallpaper** of katakana rain (`temas/matrix/animado`, Python + GTK3 + cairo,
+  ~7% of one core at 15 fps; tune with `MATRIX_FPS` and `MATRIX_SIZE`). Needs
+  the `animado` step.
+
+A theme is a folder with `colors.toml` (same format as Omarchy's, plus an
+optional `[starship]` table), `fondos/*.jpg` and, optionally, an executable
+`animado`. Put it in `temas/` and run `./install.sh configs`, or drop it into
+`~/.local/share/tema/<name>/`.
+
+## Terminal
+
+| Command | What it does |
+|---|---|
+| `ls` `ll` `la` `lt` | eza with icons and git (`lt` = tree) |
+| `cat` | bat with syntax highlighting |
+| `Ctrl+R` `Ctrl+T` `Alt+C` | fzf: history, files, directories |
+| `ff` | fzf with preview |
 | `z <dir>` / `cd` | zoxide |
+| `top` `fetch` `lg` `lzd` | btop, fastfetch, lazygit, lazydocker |
 
-fzf, lazygit y lazydocker usan colores ANSI, así que siguen el tema de Ghostty.
+fzf, lazygit and lazydocker use ANSI colors, so they follow Ghostty's theme.
 
-### Cambiador de temas: `tema`
-Usa las paletas (`colors.toml`) y fondos de los 22 temas de Omarchy.
+## Keyboard shortcuts
 
-```bash
-tema               # tema actual + lista
-tema catppuccin    # aplicar (descarga la primera vez)
-tema fondo         # siguiente fondo del tema actual
-```
-
-Además de los temas de Omarchy hay **temas propios** en `temas/`:
-
-- **`matrix`**: verde fósforo sobre negro, con un tema de Zed propio y un
-  **fondo animado** de lluvia de katakana (`temas/matrix/animado`, Python + GTK3
-  + cairo, ~7 % de un núcleo a 15 fps). El fondo animado se controla con
-  `tema animado on|off`; también se pueden usar las variables `MATRIX_FPS` y `MATRIX_SIZE`.
-
-Un tema propio es una carpeta con `colors.toml` (mismo formato que Omarchy, con
-una tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
-`animado`. `install.sh configs` los copia a `~/.local/share/tema/`.
-
-Aplica: colores de Ghostty (recarga las ventanas abiertas), paleta de Starship,
-btop, tema de Zed (si hay equivalente), fondo de pantalla, acento de Pantheon y
-modo claro/oscuro. Fondos en `~/Pictures/Wallpapers/<tema>/`.
-
-### Atajos de teclado (Pantheon)
-
-| Atajo | Acción |
+| Shortcut | Action |
 |---|---|
 | Super+Enter / Super+T | Ghostty |
-| Super+W / Alt+F4 | Cerrar ventana |
-| Super+F | Pantalla completa |
-| Super+Shift+P | Imagen en imagen |
-| Super+1–9 | Ir al escritorio N |
-| Super+Shift+1–9 | Mover ventana al escritorio N |
-| Super+Alt+1–9 | Abrir app N del dock |
-| Super+Shift+B | Navegador |
-| Super+Shift+F | Archivos |
-| Super+Escape / Super+L | Bloquear pantalla |
-| Super+Espacio | Lanzador de apps (sin cambios) |
+| Super+W / Alt+F4 | Close window |
+| Super+F | Fullscreen |
+| Super+Shift+P | Picture in picture |
+| Super+1–9 | Go to workspace N |
+| Super+Shift+1–9 | Move window to workspace N |
+| Super+Alt+1–9 | Open dock app N |
+| Super+Shift+B | Browser |
+| Super+Shift+F | Files |
+| Super+Escape / Super+L | Lock screen |
+| Super+Space | App launcher (unchanged) |
 
-Deshacer: `./gsettings/atajos.sh --restaurar`.
+## Manual tweaks (can't be automated)
 
-### Manual (no automatizable)
-- **Chrome**: tema Tokyo Night desde la Chrome Web Store (la tienda no se puede
-  automatizar), o *Personalizar Chrome* → color `#1a1b26`.
-- **Slack**: *Preferencias → Apariencia → tema personalizado*: fondo `#1a1b26`,
-  acento `#7aa2f7`, resaltado `#bb9af7`.
+- **Chrome**: install a Tokyo Night theme from the Chrome Web Store, or
+  *Customize Chrome* → color `#1a1b26`.
 
-## Estructura
+## Repository layout
 
 ```
-bin/tema                      cambiador de temas (Python)
-temas/<nombre>/               temas propios (colors.toml, animado, fondos)
-config/                       archivos que van a ~/.config
-gsettings/escritorio.sh       dock, terminal por defecto
-gsettings/atajos.sh           atajos (con --restaurar)
-install.sh                    instalador por pasos
-capturar.sh                   máquina → repo
+install.sh                    step-by-step installer (and uninstaller)
+bin/tema                      theme switcher (Python)
+temas/<name>/                 bundled themes (colors.toml, animado, fondos)
+config/                       files that go into ~/.config
+gsettings/escritorio.sh       dock, default terminal
+gsettings/atajos.sh           shortcuts (--claves, --restaurar)
+capturar.sh                   copy your machine's configs back into the repo
+tests/smoke.sh                smoke test for CI (run it in a container only)
 ```
 
-## Notas
-- Base: elementary OS 8 (Ubuntu 24.04 noble), X11, Intel Iris Xe + NVIDIA MX450.
-- `~/.config/zed/settings.json` **no** se versiona (tiene tokens); sólo el
-  fragmento del tema.
-- Los fondos no se versionan: son de Omarchy y `tema` los descarga.
+## Development
+
+- `./capturar.sh` copies your current configs back into the repo; then review
+  with `git diff`. (It also captures the Starship palette of your current
+  theme; the repo keeps Tokyo Night's.)
+- CI runs shellcheck, `py_compile` and `tests/smoke.sh` in an `ubuntu:24.04`
+  container. To run the smoke test locally:
+  `docker run --rm -v "$PWD":/src:ro ubuntu:24.04 bash /src/tests/smoke.sh`.
+- Change log (in Spanish): [BITACORA.md](BITACORA.md).
+
+## Credits
+
+This project is not affiliated with Omarchy, Basecamp or elementary, Inc.
+
+- [Omarchy](https://github.com/omacom/omarchy) by David Heinemeier Hansson
+  (MIT): the inspiration, and the source of the theme palettes and wallpapers
+  that `tema` downloads at runtime. They are not included in this repository.
+  The **wallpapers belong to their respective artists**; Omarchy distributes
+  them without per-image licenses, so use them for personal use only.
+- [Starship](https://starship.rs) Tokyo Night preset (ISC), the base of
+  `config/starship.toml`.
+- [Tokyo Night](https://github.com/enkia/tokyo-night-vscode-theme) by enkia
+  (MIT), the default palette.
+- Installed tools, each under its own license: Ghostty (MIT), Starship (ISC),
+  fastfetch (MIT), lazygit (MIT), lazydocker (MIT), JetBrains Mono (OFL-1.1)
+  patched by Nerd Fonts, and from Ubuntu: btop (Apache-2.0), eza (EUPL-1.2),
+  bat (MIT/Apache-2.0), fzf (MIT), zoxide (MIT). Ghostty is installed with
+  [mkasberg/ghostty-ubuntu](https://github.com/mkasberg/ghostty-ubuntu).
+- The Matrix theme and its animated wallpaper are original work, a homage to
+  the film; "The Matrix" is a trademark of Warner Bros.
+
+## License
+
+[MIT](LICENSE) © Federico A. Sawady O'Connor
