@@ -21,11 +21,26 @@ the elementary desktop.
 
 ## Screenshots
 
-<!-- TODO(screenshots): take them on a clean elementary OS 8 VM and save under docs/screenshots/ -->
-- [ ] Desktop with Tokyo Night (Ghostty + Starship + fastfetch) — *pending*
-- [ ] `tema` listing themes and switching to Catppuccin Latte (light) — *pending*
-- [ ] btop and lazygit following the theme — *pending*
-- [ ] Matrix theme with the animated wallpaper (GIF) — *pending*
+Ghostty with Starship and fastfetch, Tokyo Night (the default theme):
+
+![Ghostty with fastfetch and the Starship prompt, Tokyo Night theme](docs/screenshots/tokyo-night.png)
+
+`tema` lists the themes and switches to Catppuccin Latte: Ghostty reloads,
+the prompt, the accent color, light mode and the wallpaper follow:
+
+![tema switching to Catppuccin Latte](docs/screenshots/tema-catppuccin-latte.png)
+
+btop with Gruvbox:
+
+![btop with the Gruvbox theme](docs/screenshots/btop-gruvbox.png)
+
+The bundled Matrix theme, with the animated wallpaper:
+
+![Matrix theme with the animated katakana rain](docs/screenshots/matrix.gif)
+
+Taken on an elementary OS 8.1 VM by `tests/vm/run.py`. They show plain
+wallpapers instead of Omarchy's, which `tema` downloads but which don't come
+with per-image licenses (see [Credits](#credits)).
 
 ## Requirements
 
@@ -36,6 +51,7 @@ the elementary desktop.
 ## Install
 
 ```bash
+sudo apt install -y git         # elementary OS doesn't ship it
 git clone https://github.com/sawady/pantheme.git ~/pantheme
 cd ~/pantheme
 ./install.sh                    # default steps
@@ -190,6 +206,7 @@ gsettings/escritorio.sh       dock, default terminal
 gsettings/atajos.sh           shortcuts (--claves, --restaurar)
 capturar.sh                   copy your machine's configs back into the repo
 tests/smoke.sh                smoke test for CI (run it in a container only)
+tests/vm/                     end-to-end test on an elementary OS VM (run.py)
 ```
 
 ## Development
@@ -200,7 +217,12 @@ tests/smoke.sh                smoke test for CI (run it in a container only)
 - CI runs shellcheck, `py_compile` and `tests/smoke.sh` in an `ubuntu:24.04`
   container. To run the smoke test locally:
   `docker run --rm -v "$PWD":/src:ro ubuntu:24.04 bash /src/tests/smoke.sh`.
-- Change log (in Spanish): [BITACORA.md](BITACORA.md).
+- `tests/vm/run.py test` boots the official elementary OS 8 ISO in a QEMU/KVM
+  VM (inside Docker), installs everything, checks the desktop settings,
+  switches themes, uninstalls and compares with the initial state. It's run
+  by hand, not in CI; see [CONTRIBUTING.md](CONTRIBUTING.md#testing).
+- [CHANGELOG.md](CHANGELOG.md); development log with the reasoning behind
+  each decision (in Spanish): [BITACORA.md](BITACORA.md).
 
 ## Credits
 

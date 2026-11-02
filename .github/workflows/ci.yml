@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: bash -n
-        run: for f in install.sh capturar.sh gsettings/*.sh tests/*.sh; do bash -n "$f"; done
+        run: for f in install.sh capturar.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh; do bash -n "$f"; done
       - name: shellcheck
-        run: shellcheck install.sh capturar.sh gsettings/*.sh tests/*.sh config/bash/omarchy-style.sh
+        run: shellcheck install.sh capturar.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh config/bash/omarchy-style.sh
       - name: py_compile
         run: |
-          python3 -m py_compile bin/tema temas/matrix/animado
+          python3 -m py_compile bin/tema temas/matrix/animado tests/vm/*.py
           python3 bin/tema --help > /dev/null
 
   smoke:

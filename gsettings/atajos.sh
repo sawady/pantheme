@@ -3,6 +3,7 @@
 #
 #   ./gsettings/atajos.sh              aplica los atajos
 #   ./gsettings/atajos.sh --claves     lista las claves que toca (esquema clave)
+#   ./gsettings/atajos.sh --valores    lista lo que aplica (esquema clave valor)
 #   ./gsettings/atajos.sh --restaurar  vuelve a los valores de fábrica
 #
 # `./install.sh desinstalar atajos` repone los valores que había antes de
@@ -36,9 +37,10 @@ for b in "${BINDINGS[@]}"; do
   read -r schema key value <<<"$b"
   case "${1:-}" in
     --claves)    echo "$schema $key" ;;
+    --valores)   echo "$schema $key $value" ;;
     --restaurar) gsettings reset "$schema" "$key" ;;
     "")          gsettings set "$schema" "$key" "$value" ;;
-    *) echo "Opción desconocida: $1 (usá --claves o --restaurar)" >&2; exit 1 ;;
+    *) echo "Opción desconocida: $1 (usá --claves, --valores o --restaurar)" >&2; exit 1 ;;
   esac
 done
 

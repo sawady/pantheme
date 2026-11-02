@@ -18,9 +18,20 @@ elementary.
 
 ## Capturas
 
-<!-- TODO(capturas): sacarlas en una VM limpia de elementary OS 8, en docs/screenshots/ -->
-Pendientes: escritorio con Tokyo Night, `tema` cambiando a un tema claro,
-btop/lazygit siguiendo el tema, y Matrix con el fondo animado (GIF).
+![Ghostty con fastfetch y el prompt de Starship, tema Tokyo Night](docs/screenshots/tokyo-night.png)
+
+`tema` cambiando a Catppuccin Latte (claro), btop con Gruvbox y el tema
+Matrix con su fondo animado:
+
+![tema cambiando a Catppuccin Latte](docs/screenshots/tema-catppuccin-latte.png)
+
+![btop con el tema Gruvbox](docs/screenshots/btop-gruvbox.png)
+
+![Tema Matrix con la lluvia de katakana animada](docs/screenshots/matrix.gif)
+
+Sacadas en una VM de elementary OS 8.1 con `tests/vm/run.py`. Usan fondos
+lisos en lugar de los de Omarchy, que `tema` descarga pero no tienen licencia
+por imagen.
 
 ## Requisitos
 
@@ -29,6 +40,7 @@ elementary OS 8 en sesión **X11**, x86_64, internet y `sudo` (sólo para apt).
 ## Instalación
 
 ```bash
+sudo apt install -y git         # elementary OS no lo trae
 git clone https://github.com/sawady/pantheme.git ~/pantheme
 cd ~/pantheme
 ./install.sh                    # pasos por defecto
@@ -99,6 +111,15 @@ tema animado on|off  # fondo animado, si el tema tiene
 Un tema propio es una carpeta con `colors.toml` (formato de Omarchy, con una
 tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
 `animado`.
+
+## Pruebas
+
+Además del smoke test en contenedor que corre el CI, `tests/vm/run.py test`
+arranca el ISO oficial de elementary OS 8 en una VM (QEMU/KVM dentro de
+Docker), instala todo, verifica los ajustes del escritorio, cambia de tema,
+desinstala y compara con el estado inicial. Se corre a mano; ver
+[CONTRIBUTING.md](CONTRIBUTING.md#testing). Cambios:
+[CHANGELOG.md](CHANGELOG.md) y [BITACORA.md](BITACORA.md).
 
 Atajos, alias de terminal, estructura y desarrollo: ver el
 [README en inglés](README.md).

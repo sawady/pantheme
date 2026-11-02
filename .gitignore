@@ -2,3 +2,4 @@
 config/zed/settings.json
 *.bak
 __pycache__/
+vm-out/
