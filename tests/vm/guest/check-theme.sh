@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Checks that `tema <name>` was applied everywhere.
+# Checks that `pantheme <name>` was applied everywhere.
 #   check-theme.sh <name> <light|dark> <accent|any> [animated]
 set -uo pipefail
 name="$1" mode="$2" accent="$3" animated="${4:-}"
@@ -26,7 +26,7 @@ if grep -q "main_bg\]=\"$bg\"" ~/.config/btop/themes/tema.theme; then ok "btop t
 if grep -q '^\[palettes\.tema\]' ~/.config/starship.toml; then ok "starship palette"; else bad "starship palette"; fi
 sleep 3
 if [ -n "$animated" ]; then
-  eq "tema-animado.service" "$(systemctl --user is-active tema-animado.service)" "active"
+  eq "pantheme-animated.service" "$(systemctl --user is-active pantheme-animated.service)" "active"
   if pgrep -f "tema/$name/animado" >/dev/null; then ok "animated wallpaper running"; else bad "animated wallpaper not running"; fi
 else
   if pgrep -f 'tema/.*/animado' >/dev/null; then bad "an animated wallpaper is still running"; else ok "no animated wallpaper"; fi

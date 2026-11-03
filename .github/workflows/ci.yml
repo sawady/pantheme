@@ -18,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: bash -n
-        run: for f in install.sh capturar.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh; do bash -n "$f"; done
+        run: for f in install.sh capture.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh; do bash -n "$f"; done
       - name: shellcheck
-        run: shellcheck install.sh capturar.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh config/bash/omarchy-style.sh
+        run: shellcheck install.sh capture.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh config/bash/omarchy-style.sh
       - name: py_compile
         run: |
-          python3 -m py_compile bin/tema temas/matrix/animado tests/vm/*.py
-          python3 bin/tema --help > /dev/null
+          python3 -m py_compile bin/pantheme temas/matrix/animado tests/vm/*.py
+          python3 bin/pantheme --help > /dev/null
 
   smoke:
     # Steps that don't need a desktop session, in a throwaway Ubuntu 24.04

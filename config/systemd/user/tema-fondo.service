@@ -1,6 +1,0 @@
-[Unit]
-Description=Rotar fondo de pantalla del tema actual
-
-[Service]
-Type=oneshot
-ExecStart=%h/.local/bin/tema fondo

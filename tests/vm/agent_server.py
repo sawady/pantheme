@@ -9,6 +9,7 @@ server for shell jobs and posts their output back. The host-side driver
   GET  /b                 bootstrap: shell snippet that starts the guest agent
   GET  /agent.py          the guest agent
   GET  /repo.tar.gz       the repository mounted at /pantheme (no .git)
+  GET  /out/<file>        a file from the output directory (e.g. an older revision)
   GET  /job               guest: next job as JSON, 204 if none (long poll ~20 s)
   POST /log/<id>          guest: output so far
   POST /result/<id>       guest: final output, exit code in X-Exit-Code
@@ -26,6 +27,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 REPO = os.environ.get("PANTHEME_REPO", "/pantheme")
+OUT = "/out"
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Condition()
 JOBS = {}      # id -> {"script", "env", "state", "rc", "output"}
@@ -75,6 +77,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, f.read(), "text/x-python")
         elif p == "/repo.tar.gz":
             self.send(200, repo_tarball(), "application/gzip")
+        elif p.startswith("/out/"):
+            path = os.path.join(OUT, os.path.basename(p))
+            if not os.path.isfile(path):
+                return self.send(404, "not found\n", "text/plain")
+            with open(path, "rb") as f:
+                self.send(200, f.read(), "application/octet-stream")
         elif p == "/job":
             with LOCK:
                 LOCK.wait_for(lambda: QUEUE, timeout=20)

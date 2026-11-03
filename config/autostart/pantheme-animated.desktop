@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Animated wallpaper (pantheme)
+Comment=Starts the animated wallpaper of the current theme
+Exec=systemctl --user start pantheme-animated.service
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

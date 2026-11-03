@@ -1,6 +1,9 @@
 # shellcheck shell=bash
-# Downloads the repository under test from the job server into ~/pantheme.
+# Downloads a repository tarball from the job server into ~.
+#   fetch.sh [tarball] [directory]   default: repo.tar.gz (the repository under
+#                                    test) into ~/pantheme
 set -euo pipefail
-rm -rf ~/pantheme
-wget -qO- "$PANTHEME_AGENT/repo.tar.gz" | tar -xz -C ~
-ls ~/pantheme
+tarball="${1:-repo.tar.gz}" dir="${2:-pantheme}"
+rm -rf ~/"$dir"
+wget -qO- "$PANTHEME_AGENT/$tarball" | tar -xz -C ~
+ls ~/"$dir"

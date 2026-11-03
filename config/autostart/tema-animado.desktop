@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Fondo animado (tema)
-Comment=Arranca el fondo animado del tema actual
-Exec=systemctl --user start tema-animado.service
-X-GNOME-Autostart-enabled=true
-NoDisplay=true

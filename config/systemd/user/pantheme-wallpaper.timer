@@ -1,5 +1,5 @@
 [Unit]
-Description=Rotar fondo de pantalla cada 30 minutos
+Description=Rotate the pantheme wallpaper every 30 minutes
 
 [Timer]
 OnCalendar=*:0/30

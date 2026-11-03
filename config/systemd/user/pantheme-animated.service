@@ -1,0 +1,7 @@
+[Unit]
+Description=Animated wallpaper of the current pantheme theme (if it has one)
+
+[Service]
+ExecStart=%h/.local/bin/pantheme animated
+Restart=on-failure
+RestartSec=3

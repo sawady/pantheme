@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Ajustes de Pantheon: Ghostty como terminal principal.
-# El fondo, el acento y el modo claro/oscuro los maneja `tema`.
+# Pantheon settings: Ghostty as the main terminal.
+# The wallpaper, accent color and light/dark mode are handled by `pantheme`.
 set -euo pipefail
+
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in es*) UI=es ;; *) UI=en ;; esac
+say() { if [ "$UI" = es ]; then echo "$2"; else echo "$1"; fi; }  # english spanish
 
 GHOSTTY=com.mitchellh.ghostty.desktop
 TERMINAL=io.elementary.terminal.desktop
 
-# Ghostty en el dock: reemplaza a la Terminal de elementary si está, o se
-# agrega al final. El resto de los lanzadores queda como estaba.
+# Ghostty in the dock: it replaces elementary's Terminal if it's there, or is
+# added at the end. The other launchers are kept as they were.
 current="$(gsettings get io.elementary.dock launchers)"
-updated="$(python3 - "$current" "$TERMINAL" "$GHOSTTY" <<'EOF'
+updated="$(python3 - "$current" "$TERMINAL" "$GHOSTTY" <<'PY'
 import ast, sys
 cur, old, new = sys.argv[1:]
 cur = cur.removeprefix("@as ")
@@ -19,18 +22,19 @@ if new not in items:
     if new not in items:
         items.append(new)
 print(str(items))
-EOF
+PY
 )"
 [ "$updated" != "$current" ] && gsettings set io.elementary.dock launchers "$updated"
 
-# Ghostty como terminal por defecto (Super+T, "abrir en terminal")
+# Ghostty as the default terminal (Super+T, "open in terminal")
 gsettings set org.gnome.desktop.default-applications.terminal exec 'ghostty'
 if [ "$(readlink -f /etc/alternatives/x-terminal-emulator 2>/dev/null)" != /usr/bin/ghostty ]; then
-  echo "Aviso: x-terminal-emulator no apunta a Ghostty. Para cambiarlo:"
+  say "Note: x-terminal-emulator doesn't point to Ghostty. To change it:" \
+      "Aviso: x-terminal-emulator no apunta a Ghostty. Para cambiarlo:"
   echo "  sudo update-alternatives --set x-terminal-emulator /usr/bin/ghostty"
 fi
 
-# Modo oscuro por defecto (`tema` lo ajusta según el tema elegido)
+# Dark mode by default (`pantheme` adjusts it to the chosen theme)
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 
-echo "Ajustes de escritorio aplicados."
+say "Desktop settings applied." "Ajustes de escritorio aplicados."

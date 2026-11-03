@@ -1,4 +1,4 @@
-# lazydocker — colores ANSI (siguen el tema de Ghostty / `tema`)
+# lazydocker: ANSI colors (they follow Ghostty's theme, set by `pantheme`)
 gui:
   border: rounded
   theme:

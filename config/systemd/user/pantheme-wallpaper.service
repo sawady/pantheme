@@ -1,0 +1,6 @@
+[Unit]
+Description=Next wallpaper of the current pantheme theme
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/pantheme wallpaper

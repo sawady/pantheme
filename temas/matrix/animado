@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Lluvia de código estilo Matrix como fondo de escritorio animado.
+"""Matrix-style code rain as an animated desktop wallpaper.
 
-Abre una ventana de tipo DESKTOP (debajo de todas las demás, en todos los
-escritorios, sin foco) y dibuja la lluvia con cairo. Los glifos se
-pre-renderizan una vez, así cada cuadro es sólo un fundido + algunos blits.
+Opens a DESKTOP-type window (below every other window, on every workspace,
+without focus) and draws the rain with cairo. The glyphs are pre-rendered
+once, so each frame is just a fade plus a few blits.
 
-Variables de entorno opcionales:
-  MATRIX_FPS   cuadros por segundo (default 15)
-  MATRIX_SIZE  tamaño de letra en px (default 18)
+Optional environment variables:
+  MATRIX_FPS   frames per second (default 15)
+  MATRIX_SIZE  font size in px (default 18)
 """
 import os
 import random
@@ -29,12 +29,12 @@ GREEN = (0x00 / 255, 0xff / 255, 0x41 / 255)
 DIM = (0x00 / 255, 0x8f / 255, 0x11 / 255)
 HEAD = (0xd8 / 255, 0xff / 255, 0xe0 / 255)
 
-# Katakana de media anchura (como en la película) + dígitos + algunos símbolos
+# Half-width katakana (as in the film) + digits + a few symbols
 CHARS = [chr(c) for c in range(0xFF66, 0xFF9E)] + list("0123456789Z:.\"=*+-<>¦|")
 
 
 def render_glyphs(color, cell_w, cell_h):
-    """Pre-renderiza cada carácter en una superficie pequeña."""
+    """Pre-renders each character on a small surface."""
     glyphs = []
     desc = Pango.FontDescription.from_string(FONT)
     for ch in CHARS:
@@ -45,7 +45,7 @@ def render_glyphs(color, cell_w, cell_h):
         layout.set_text(ch, -1)
         _, log = layout.get_pixel_extents()
         cr.set_source_rgb(*color)
-        # Espejado horizontal, como en la película
+        # Mirrored horizontally, as in the film
         cr.translate(cell_w, 0)
         cr.scale(-1, 1)
         cr.move_to((cell_w - log.width) / 2, (cell_h - log.height) / 2)
@@ -57,7 +57,7 @@ def render_glyphs(color, cell_w, cell_h):
 class Rain(Gtk.Window):
     def __init__(self):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
-        # Cubre todos los monitores (unión de sus geometrías)
+        # Covers every monitor (the union of their geometries)
         display = Gdk.Display.get_default()
         geoms = [display.get_monitor(i).get_geometry() for i in range(display.get_n_monitors())]
         self.w = max(g.x + g.width for g in geoms)
@@ -82,7 +82,7 @@ class Rain(Gtk.Window):
         self.dim = render_glyphs(DIM, self.cell_w, self.cell_h)
         self.head = render_glyphs(HEAD, self.cell_w, self.cell_h)
 
-        # Cada columna: posición, velocidad (cuadros por paso) y contador
+        # Each column: position, speed (frames per step) and counter
         self.drops = [random.randint(-self.rows, 0) for _ in range(self.cols)]
         self.speed = [random.choice((1, 1, 1, 2, 2, 3)) for _ in range(self.cols)]
         self.tick = [0] * self.cols
@@ -99,7 +99,7 @@ class Rain(Gtk.Window):
 
     def step(self):
         cr = cairo.Context(self.buf)
-        # Fundido: cada cuadro oscurece un poco todo, dejando la estela
+        # Fade: each frame darkens everything a little, leaving the trail
         cr.set_source_rgba(*BG, 0.09)
         cr.paint()
         for i in range(self.cols):
@@ -109,7 +109,7 @@ class Rain(Gtk.Window):
             self.tick[i] = 0
             x, y = i * self.cell_w, self.drops[i] * self.cell_h
             if self.drops[i] > 0:
-                # El carácter anterior pasa de "cabeza" blanca a verde
+                # The previous character goes from white "head" to green
                 g = self.green if random.random() > 0.3 else self.dim
                 cr.set_source_surface(g[self.prev[i]], x, y - self.cell_h)
                 cr.paint()

@@ -9,6 +9,9 @@ Screenshots are taken with QEMU's QMP `screendump`.
 
   tests/vm/run.py test            full run: boot, install, check, switch themes,
                                   uninstall, compare with the initial state
+  tests/vm/run.py migration [rev] install an older revision (default: the last
+                                  one with the `tema` command), upgrade it with
+                                  this one, check, uninstall and compare
   tests/vm/run.py up              boot the VM, start the agent and leave it running
   tests/vm/run.py job <file|->    run a shell script in the VM (VM must be up)
   tests/vm/run.py shot <name>     screenshot to <out>/<name>.png
@@ -20,7 +23,7 @@ Screenshots are taken with QEMU's QMP `screendump`.
 Options (environment):
   PANTHEME_VM_CACHE   ISO cache (default ~/.cache/pantheme-vm)
   PANTHEME_VM_OUT     output directory (default <repo>/vm-out/<date>)
-  PANTHEME_VM_KEEP=1  leave the VM running after `test`
+  PANTHEME_VM_KEEP=1  leave the VM running after `test` or `migration`
   GITHUB_TOKEN        passed to the installer in the VM, for GitHub's API rate
                       limit (60 requests/hour without it; a run uses ~20). The
                       Ghostty step runs a third-party script that can read it:
@@ -50,6 +53,8 @@ ISO_URL = f"https://dl.elementaryos.org/MTc5MzYzMDY4Nw==/{ISO_NAME}"
 ISO_SHA256 = "bda93040d08c05911fb159f8150bf8f4ef2db6567ef6e2acd197cb6f395d3446"
 IMAGE = "qemux/qemu:7.50"
 NAME = "pantheme-vm"
+# Last commit before the theme command was renamed from `tema` to `pantheme`
+OLD_REV = "e079848"
 WEB, QMP, AGENT = 8006, 4444, 8800
 CACHE = Path(os.environ.get("PANTHEME_VM_CACHE", Path.home() / ".cache/pantheme-vm"))
 OUT = Path(os.environ.get(
@@ -399,65 +404,82 @@ def in_terminal(qmp, *commands, wait=3):
 
 
 def switch_theme(qmp, name):
-    """Types `tema <name>` in the focused terminal and waits until it's applied."""
+    """Types `pantheme <name>` in the focused terminal and waits until it's applied."""
     for _ in range(3):
         in_terminal(qmp, "clear", wait=1)
-        in_terminal(qmp, f"tema {name}", wait=1)
+        in_terminal(qmp, f"pantheme {name}", wait=1)
         for _ in range(15):
             rc, _ = job(f'[ "$(cat ~/.config/tema/actual)" = {name} ]', quiet=True)
             if rc == 0:
                 time.sleep(2)
                 return
             time.sleep(2)
-        log(f"`tema {name}` didn't take effect, typing it again")
+        log(f"`pantheme {name}` didn't take effect, typing it again")
         qmp.keys("ctrl-c")
 
 
-def test():
+def session(body):
+    """Boots the VM, runs body(qmp, step, shot), writes the report and stops the VM."""
     keep = os.environ.get("PANTHEME_VM_KEEP") == "1"
     iso = fetch_iso()
     up_container(iso)
     shots = []
-
-    def shot(name):
-        qmp.shot(name)
-        shots.append(name)
-
     try:
         qmp = Qmp()
         info = boot(qmp)
         log("agent:", " ".join(info.split()))
         report = Report()
 
-        def S(*a, **kw):
+        def step(*a, **kw):
             return run_step(report, *a, **kw)
 
+        def shot(name):
+            qmp.shot(name)
+            shots.append(name)
+
+        body(qmp, step, shot)
+        ok = report.write(info, shots)
+        make_gif()
+        log(f"Report: {OUT / 'report.md'}")
+        return 0 if ok else 1
+    finally:
+        (OUT / "_probe.ppm").unlink(missing_ok=True)
+        if keep:
+            fix_owner()
+            log(f"VM left running: http://127.0.0.1:{WEB}  (stop it with: {sys.argv[0]} down)")
+        else:
+            down()
+
+
+def test():
+    def body(qmp, S, shot):
         S("prepare live session", "prepare")
         S("download repository", "fetch")
         S("snapshot before", "state", "before")
-        installed = S("install.sh todo zed fondos animado",
-                      "cd ~/pantheme && ./install.sh todo zed fondos animado",
+        installed = S("install.sh all zed wallpaper-rotation animated",
+                      "cd ~/pantheme && ./install.sh all zed wallpaper-rotation animated",
                       guest_script=False, timeout=2400)
         if installed:
             S("check install", "check-installed", timeout=300)
+            S("messages in Spanish with LANG=es_AR", "spanish", timeout=300)
 
             # Screenshots, with plain wallpapers instead of the downloaded ones
             S("plain wallpapers for screenshots", "plain-walls")
-            job("pkill -x ghostty; export PATH=$HOME/.local/bin:$PATH; tema tokyo-night", quiet=True)
+            job("pkill -x ghostty; export PATH=$HOME/.local/bin:$PATH; pantheme tokyo-night", quiet=True)
             S("check theme tokyo-night", "check-theme", "tokyo-night", "dark", "grape")
             qmp.keys("meta_l-ret")      # the Super+Enter shortcut opens Ghostty
             time.sleep(5)
             in_terminal(qmp, "fastfetch", wait=4)
             shot("tokyo-night")
             in_terminal(qmp, "clear", wait=1)
-            in_terminal(qmp, "tema", wait=2)
-            in_terminal(qmp, "tema catppuccin-latte", wait=1)
+            in_terminal(qmp, "pantheme", wait=2)
+            in_terminal(qmp, "pantheme catppuccin-latte", wait=1)
             for _ in range(15):
                 if job('[ "$(cat ~/.config/tema/actual)" = catppuccin-latte ]', quiet=True)[0] == 0:
                     break
                 time.sleep(2)
             time.sleep(2)
-            shot("tema-catppuccin-latte")
+            shot("pantheme-catppuccin-latte")
             S("check theme catppuccin-latte", "check-theme", "catppuccin-latte", "light", "any")
             switch_theme(qmp, "gruvbox")
             qmp.keys("ctrl-minus")      # smaller font: btop wants at least 80 columns
@@ -476,30 +498,55 @@ def test():
                 qmp.shot(f"_matrix-{i:02d}")
                 time.sleep(0.2)
             S("check theme matrix (animated)", "check-theme", "matrix", "dark", "lime", "animated")
+            S("pantheme animated off|on (and tema animado)", "animated-toggle")
             qmp.keys("meta_l-w")        # the Super+W shortcut closes the window
             time.sleep(2)
             S("Super+W closed Ghostty", "! pgrep -x ghostty", guest_script=False)
             S("restore downloaded wallpapers", "plain-walls", "restore")
 
-        S("install.sh desinstalar", "cd ~/pantheme && ./install.sh desinstalar",
+        S("install.sh uninstall", "cd ~/pantheme && ./install.sh uninstall",
           guest_script=False, timeout=600)
         S("animated wallpaper and timer stopped",
-          "! pgrep -f 'tema/.*/animado' && ! systemctl --user is-enabled tema-fondo.timer",
+          "! pgrep -f 'tema/.*/animado' && ! systemctl --user is-enabled pantheme-wallpaper.timer",
           guest_script=False)
         S("snapshot after", "state", "after")
         S("compare with the initial state", "compare", "before", "after")
         shot("after-uninstall")
-        ok = report.write(info, shots)
-        make_gif()
-        log(f"Report: {OUT / 'report.md'}")
-        return 0 if ok else 1
-    finally:
-        (OUT / "_probe.ppm").unlink(missing_ok=True)
-        if keep:
-            fix_owner()
-            log(f"VM left running: http://127.0.0.1:{WEB}  (stop it with: {sys.argv[0]} down)")
-        else:
-            down()
+
+    return session(body)
+
+
+def migration(rev):
+    """An install made by an older revision, upgraded by running this one."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    sh("git", "-C", str(REPO), "archive", "--format=tar.gz", "--prefix=pantheme-old/",
+       "-o", str(OUT / "old-repo.tar.gz"), rev)
+
+    def body(qmp, S, shot):
+        S("prepare live session", "prepare")
+        S("download repository", "fetch")
+        S(f"download {rev}", "fetch", "out/old-repo.tar.gz", "pantheme-old")
+        S("snapshot before", "state", "before")
+        old = S(f"{rev}: install.sh todo fondos animado, tema matrix",
+                "cd ~/pantheme-old && ./install.sh todo fondos animado && ~/.local/bin/tema matrix",
+                guest_script=False, timeout=2400)
+        if old:
+            S(f"check the {rev} install", "check-old-install")
+            S("new install.sh shell migrates it",
+              "cd ~/pantheme && out=$(./install.sh shell 2>&1); echo \"$out\"; "
+              "grep -q 'Migrating an install of' <<<\"$out\"", guest_script=False)
+            S("check the migration", "check-migrated")
+            shot("migrated")
+        S("install.sh desinstalar with LANG=es_AR",
+          "cd ~/pantheme && out=$(LANG=es_AR.UTF-8 ./install.sh desinstalar 2>&1); echo \"$out\"; "
+          "grep -q 'Desinstalar: wallpaper-rotation' <<<\"$out\"", guest_script=False, timeout=600)
+        S("animated wallpaper and timers stopped",
+          "! pgrep -f 'tema/.*/animado' && ! systemctl --user is-enabled pantheme-wallpaper.timer"
+          " && ! systemctl --user is-enabled tema-fondo.timer", guest_script=False)
+        S("snapshot after", "state", "after")
+        S("compare with the initial state", "compare", "before", "after")
+
+    return session(body)
 
 
 def make_gif():
@@ -541,7 +588,7 @@ def main():
         print(__doc__.strip())
         return
     what = args[0]
-    if what not in ("up", "test"):
+    if what not in ("up", "test", "migration"):
         use_running_out()
     if what == "up":
         up_container(fetch_iso())
@@ -565,6 +612,8 @@ def main():
         sys.exit(rc)
     elif what == "test":
         sys.exit(test())
+    elif what == "migration":
+        sys.exit(migration(args[1] if len(args) > 1 else OLD_REV))
     else:
         sys.exit(f"unknown command: {what}")
 

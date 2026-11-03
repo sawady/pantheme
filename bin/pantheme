@@ -1,24 +1,11 @@
 #!/usr/bin/env python3
-"""tema — cambiador de temas para elementary OS, inspirado en Omarchy.
+"""pantheme: theme switcher for elementary OS, inspired by Omarchy.
 
-Descarga las paletas y fondos de los temas de Omarchy (github.com/omacom/omarchy,
-licencia MIT; los fondos son de sus autores) y aplica el tema a Ghostty, Starship, btop, Zed, el fondo de pantalla y el
-color de acento / modo claro-oscuro de Pantheon.
-
-Uso:
-  tema                 muestra el tema actual y la lista de temas
-  tema <nombre>        aplica un tema (lo descarga la primera vez)
-  tema fondo           pasa al siguiente fondo del tema actual
-  tema animado on|off  activa/desactiva el fondo animado (si el tema tiene)
-
-Temas propios: una carpeta en ~/.local/share/tema/<nombre>/ con colors.toml
-(mismo formato que Omarchy, con una tabla [starship] opcional para ajustar
-la paleta del prompt) y opcionalmente un ejecutable `animado`.
-
-Variables de entorno:
-  TEMA_WALLPAPERS  carpeta de fondos (por defecto ~/Pictures/Wallpapers, o la
-                   carpeta de imágenes de XDG + /Wallpapers si aquella no existe)
-  GITHUB_TOKEN     token opcional para la API de GitHub (evita el límite de pedidos)
+Downloads the palettes and wallpapers of Omarchy's themes (MIT; the wallpapers
+belong to their authors) and applies them to Ghostty, Starship, btop, Zed, the
+wallpaper and Pantheon's accent color and light/dark mode. Installed as
+~/.local/bin/pantheme, with `tema` (its former name) as an alias. Messages are
+in Spanish when the locale is Spanish. Run `pantheme --help` for the usage.
 """
 import colorsys
 import json
@@ -28,18 +15,129 @@ import subprocess
 import sys
 import time
 import tomllib
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 HOME = Path.home()
+# Data paths keep the command's former name, so existing installs keep working
 DATA = HOME / ".local/share/tema"
 STATE = HOME / ".config/tema"
 API = "https://api.github.com/repos/omacom/omarchy/contents/themes"
+ANIMATED_UNIT = "pantheme-animated.service"
+
+
+# ---------------------------------------------------------------- messages
+def language():
+    """'es' when the locale for messages is Spanish (LC_ALL > LC_MESSAGES > LANG)."""
+    for var in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        value = os.environ.get(var)
+        if value:
+            return "es" if value.startswith("es") else "en"
+    return "en"
+
+
+LANG = language()
+
+MSG = {
+    "help": (
+        """pantheme: theme switcher for elementary OS, inspired by Omarchy.
+
+Usage:
+  pantheme                  show the current theme and the list of themes
+  pantheme <theme>          apply a theme (downloaded the first time)
+  pantheme wallpaper        next wallpaper of the current theme
+  pantheme animated on|off  turn the animated wallpaper on or off
+                            (for themes that have one, like matrix)
+  pantheme help             this help
+
+`tema` is an alias of `pantheme`, and the Spanish subcommands still work:
+fondo (wallpaper), animado (animated), ayuda (help).
+
+It applies the palettes and wallpapers of Omarchy's themes
+(github.com/omacom/omarchy, MIT; the wallpapers belong to their authors) to
+Ghostty, Starship, btop, Zed, the wallpaper and Pantheon's accent color and
+light/dark mode.
+
+Your own themes: a folder ~/.local/share/tema/<name>/ with colors.toml
+(Omarchy's format, plus an optional [starship] table for the prompt palette)
+and, optionally, an executable `animado` (the animated wallpaper).
+
+Environment:
+  PANTHEME_WALLPAPERS  wallpaper folder (default ~/Pictures/Wallpapers, or the
+                       XDG pictures folder + /Wallpapers if that doesn't exist)
+  GITHUB_TOKEN         optional GitHub token, to avoid the API's rate limit""",
+        """pantheme: cambiador de temas para elementary OS, inspirado en Omarchy.
+
+Uso:
+  pantheme                  muestra el tema actual y la lista de temas
+  pantheme <tema>           aplica un tema (lo descarga la primera vez)
+  pantheme fondo            pasa al siguiente fondo del tema actual
+  pantheme animado on|off   activa o desactiva el fondo animado
+                            (para los temas que tienen uno, como matrix)
+  pantheme ayuda            esta ayuda
+
+`tema` es un alias de `pantheme`, y también valen los subcomandos en inglés:
+wallpaper (fondo), animated (animado), help (ayuda).
+
+Aplica las paletas y fondos de los temas de Omarchy
+(github.com/omacom/omarchy, MIT; los fondos son de sus autores) a Ghostty,
+Starship, btop, Zed, el fondo de pantalla y el color de acento y el modo
+claro/oscuro de Pantheon.
+
+Temas propios: una carpeta ~/.local/share/tema/<nombre>/ con colors.toml
+(formato de Omarchy, con una tabla [starship] opcional para la paleta del
+prompt) y, si se quiere, un ejecutable `animado` (el fondo animado).
+
+Variables de entorno:
+  PANTHEME_WALLPAPERS  carpeta de fondos (por defecto ~/Pictures/Wallpapers, o
+                       la carpeta de imágenes de XDG + /Wallpapers si aquella
+                       no existe)
+  GITHUB_TOKEN         token opcional de GitHub, para evitar el límite de la API"""),
+    "current": ("Current theme: {theme}\n\nAvailable:", "Tema actual: {theme}\n\nDisponibles:"),
+    "hint": ("\nUsage: pantheme <theme>  |  pantheme wallpaper  |  pantheme help",
+             "\nUso: pantheme <tema>  |  pantheme fondo  |  pantheme ayuda"),
+    "unknown": ("Unknown theme '{name}'. Run `pantheme` to see the list.",
+                "No existe el tema '{name}'. Escribí `pantheme` para ver la lista."),
+    "downloading_palette": ("Downloading the {name} palette…", "Descargando la paleta de {name}…"),
+    "downloading_walls": ("Downloading the {name} wallpapers…", "Descargando los fondos de {name}…"),
+    "no_colors": ("Theme {name} has no colors.toml", "El tema {name} no tiene colors.toml"),
+    "download_failed": (
+        "Could not download {name} from GitHub ({error}).\n"
+        "If it's GitHub's API rate limit (60 requests per hour without a token),\n"
+        "wait a while or set GITHUB_TOKEN.",
+        "No se pudo descargar {name} de GitHub ({error}).\n"
+        "Si es el límite de pedidos de la API de GitHub (60 por hora sin token),\n"
+        "esperá un rato o definí GITHUB_TOKEN."),
+    "applied": ("Theme {name} applied ({mode}, accent {accent}, wallpaper {wall}).",
+                "Tema {name} aplicado ({mode}, acento {accent}, fondo {wall})."),
+    "reloaded": ("Ghostty reloaded; btop picks up the theme when you open it again.",
+                 "Ghostty se recargó; btop toma el tema al volver a abrirlo."),
+    "dark": ("dark", "oscuro"),
+    "light": ("light", "claro"),
+    "no_walls": ("The current theme has no wallpapers.", "El tema actual no tiene fondos."),
+    "animated_off": ("Animated wallpaper turned off.", "Fondo animado desactivado."),
+    "animated_on": ("Animated wallpaper turned on (if the current theme has one).",
+                    "Fondo animado activado (si el tema actual tiene uno)."),
+    "animated_usage": ("Usage: pantheme animated on|off", "Uso: pantheme animado on|off"),
+}
+
+
+def t(key, **kw):
+    en, es = MSG[key]
+    return (es if LANG == "es" else en).format(**kw)
+
+
+# Subcommands, with the Spanish names of `tema` as aliases
+WALLPAPER = ("wallpaper", "fondo")
+ANIMATED = ("animated", "animado")
+HELP = ("-h", "--help", "help", "ayuda")
 
 
 def wallpapers_dir():
-    if os.environ.get("TEMA_WALLPAPERS"):
-        return Path(os.environ["TEMA_WALLPAPERS"]).expanduser()
+    custom = os.environ.get("PANTHEME_WALLPAPERS") or os.environ.get("TEMA_WALLPAPERS")
+    if custom:
+        return Path(custom).expanduser()
     default = HOME / "Pictures/Wallpapers"
     if default.is_dir():
         return default
@@ -47,13 +145,13 @@ def wallpapers_dir():
         pics = subprocess.run(["xdg-user-dir", "PICTURES"], capture_output=True, text=True).stdout.strip()
     except FileNotFoundError:
         pics = ""
-    # Sin configurar, xdg-user-dir devuelve $HOME
+    # When it isn't configured, xdg-user-dir prints $HOME
     return Path(pics) / "Wallpapers" if pics and Path(pics) != HOME else default
 
 
 WALLS = wallpapers_dir()
 
-# Tema de Zed para cada tema de Omarchy (los que tienen equivalente)
+# Zed theme for each Omarchy theme (the ones that have an equivalent)
 ZED = {
     "tokyo-night": "Tokyo Night",
     "catppuccin": "Catppuccin Mocha",
@@ -67,7 +165,7 @@ ZED = {
 }
 ZED_FALLBACK = {"dark": "One Dark", "light": "One Light"}
 
-# Acentos de elementary y su tono (grados)
+# elementary's accent colors and their hue (degrees)
 ACCENTS = {
     "blueberry": 212, "strawberry": 357, "orange": 24, "banana": 43,
     "lime": 103, "mint": 170, "grape": 268, "bubblegum": 335,
@@ -75,9 +173,9 @@ ACCENTS = {
 ACCENT_OVERRIDE = {"tokyo-night": "grape"}
 
 
-# ---------------------------------------------------------------- utilidades
+# ---------------------------------------------------------------- helpers
 def fetch(url):
-    headers = {"User-Agent": "tema"}
+    headers = {"User-Agent": "pantheme"}
     if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
         headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
     req = urllib.request.Request(url, headers=headers)
@@ -86,7 +184,7 @@ def fetch(url):
 
 
 def run(*cmd):
-    """Ejecuta un comando si existe (fuera del escritorio puede no haber gsettings)."""
+    """Runs a command if it exists (outside the desktop there may be no gsettings)."""
     try:
         return subprocess.run(cmd, check=False, capture_output=True, text=True)
     except FileNotFoundError:
@@ -129,20 +227,20 @@ def available():
     return remote + [n for n in local_themes() if n not in remote]
 
 
-# ---------------------------------------------------------------- descarga
+# ---------------------------------------------------------------- download
 def download(name):
     tdir = DATA / name
     colors = tdir / "colors.toml"
     wdir = WALLS / name
     if not colors.exists():
-        print(f"Descargando paleta de {name}…")
+        print(t("downloading_palette", name=name))
         entries = {e["name"]: e for e in json.loads(fetch(f"{API}/{name}"))}
         if "colors.toml" not in entries:
-            sys.exit(f"El tema {name} no tiene colors.toml")
+            sys.exit(t("no_colors", name=name))
         tdir.mkdir(parents=True, exist_ok=True)
         colors.write_bytes(fetch(entries["colors.toml"]["download_url"]))
     if not wdir.exists() or not any(wdir.glob("*.jpg")):
-        print(f"Descargando fondos de {name}…")
+        print(t("downloading_walls", name=name))
         from PIL import Image
         wdir.mkdir(parents=True, exist_ok=True)
         try:
@@ -163,7 +261,7 @@ def download(name):
     return c
 
 
-# ---------------------------------------------------------------- aplicar
+# ---------------------------------------------------------------- apply
 def ghostty(c):
     tdir = HOME / ".config/ghostty/themes"
     tdir.mkdir(parents=True, exist_ok=True)
@@ -182,14 +280,14 @@ def ghostty(c):
         f"selection-background = {c['selection']}",
         f"selection-foreground = {c['bright_foreground']}",
     ]
-    (tdir / "tema").write_text("# Generado por `tema`\n" + "\n".join(lines) + "\n")
+    (tdir / "tema").write_text("# Generated by pantheme\n" + "\n".join(lines) + "\n")
     cfg = HOME / ".config/ghostty/config"
     if cfg.exists():
         txt = cfg.read_text()
         txt = re.sub(r"(?m)^theme\s*=.*$", "theme = tema", txt)
         txt = re.sub(r"(?m)^window-theme\s*=.*$", "window-theme = auto", txt)
         cfg.write_text(txt)
-    # Recargar ventanas abiertas, sólo si el proceso atiende SIGUSR2
+    # Reload open windows, only if the process handles SIGUSR2
     pgrep = run("pgrep", "-x", "ghostty")
     for pid in (pgrep.stdout.split() if pgrep else []):
         try:
@@ -220,7 +318,7 @@ def starship(c):
 def btop(c):
     tdir = HOME / ".config/btop/themes"
     tdir.mkdir(parents=True, exist_ok=True)
-    t = {
+    theme = {
         "main_bg": c["background"], "main_fg": c["foreground"], "title": c["bright_foreground"],
         "hi_fg": c["accent"], "selected_bg": c["selection"], "selected_fg": c["bright_foreground"],
         "inactive_fg": c["muted"], "graph_text": c["dark_foreground"], "meter_bg": c["muted"],
@@ -236,7 +334,7 @@ def btop(c):
         "upload_start": c["magenta"], "upload_mid": c["red"], "upload_end": c["orange"],
         "process_start": c["cyan"], "process_mid": c["blue"], "process_end": c["magenta"],
     }
-    (tdir / "tema.theme").write_text("".join(f'theme[{k}]="{v}"\n' for k, v in t.items()))
+    (tdir / "tema.theme").write_text("".join(f'theme[{k}]="{v}"\n' for k, v in theme.items()))
     cfg = HOME / ".config/btop/btop.conf"
     txt = cfg.read_text() if cfg.exists() else ""
     if re.search(r"(?m)^color_theme\s*=", txt):
@@ -291,19 +389,21 @@ def wallpaper(name, step=0):
 
 
 def animated(action=None):
-    """Sin acción: ejecuta el fondo animado del tema actual (lo usa el servicio)."""
+    """Without an action: runs the current theme's animated wallpaper (the service does this)."""
     off = STATE / "animado-off"
     if action == "off":
         STATE.mkdir(parents=True, exist_ok=True)
         off.touch()
-        run("systemctl", "--user", "stop", "tema-animado.service")
-        print("Fondo animado desactivado.")
+        run("systemctl", "--user", "stop", ANIMATED_UNIT)
+        print(t("animated_off"))
         return
     if action == "on":
         off.unlink(missing_ok=True)
-        run("systemctl", "--user", "restart", "tema-animado.service")
-        print("Fondo animado activado (si el tema actual tiene uno).")
+        run("systemctl", "--user", "restart", ANIMATED_UNIT)
+        print(t("animated_on"))
         return
+    if action is not None:
+        sys.exit(t("animated_usage"))
     script = DATA / (current() or "") / "animado"
     if off.exists() or not os.access(script, os.X_OK):
         return
@@ -311,7 +411,10 @@ def animated(action=None):
 
 
 def apply(name):
-    c = download(name)
+    try:
+        c = download(name)
+    except (urllib.error.URLError, OSError) as e:
+        sys.exit(t("download_failed", name=name, error=e))
     mode = c.get("mode", "dark")
     ghostty(c)
     starship(c)
@@ -321,10 +424,11 @@ def apply(name):
     wall = wallpaper(name)
     STATE.mkdir(parents=True, exist_ok=True)
     (STATE / "actual").write_text(name)
-    # El servicio arranca el `animado` del tema nuevo, o termina si no tiene
-    run("systemctl", "--user", "restart", "tema-animado.service")
-    print(f"Tema {name} aplicado ({mode}, acento {accent}, fondo {wall or '—'}).")
-    print("Ghostty se recargó; btop toma el tema al volver a abrirlo.")
+    # The service starts the new theme's animated wallpaper, or exits if it has none
+    run("systemctl", "--user", "restart", ANIMATED_UNIT)
+    print(t("applied", name=name, mode=t(mode) if mode in ("dark", "light") else mode,
+            accent=accent, wall=wall or "—"))
+    print(t("reloaded"))
 
 
 # ---------------------------------------------------------------- main
@@ -332,26 +436,26 @@ def main():
     args = sys.argv[1:]
     if not args:
         cur = current()
-        print(f"Tema actual: {cur or '—'}\n\nDisponibles:")
+        print(t("current", theme=cur or "—"))
         for n in available():
             mark = "●" if n == cur else " "
             print(f"  {mark} {n}")
-        print("\nUso: tema <nombre>  |  tema fondo")
+        print(t("hint"))
         return
-    if args[0] in ("-h", "--help", "ayuda"):
-        print(__doc__.strip())
+    if args[0] in HELP:
+        print(t("help"))
         return
-    if args[0] == "animado":
+    if args[0] in ANIMATED:
         animated(args[1] if len(args) > 1 else None)
         return
-    if args[0] == "fondo":
+    if args[0] in WALLPAPER:
         cur = current() or "tokyo-night"
-        print(wallpaper(cur, step=1) or "El tema actual no tiene fondos.")
+        print(wallpaper(cur, step=1) or t("no_walls"))
         return
     name = args[0]
     names = available()
     if names and name not in names:
-        sys.exit(f"No existe el tema '{name}'. Escribe `tema` para ver la lista.")
+        sys.exit(t("unknown", name=name))
     apply(name)
 
 

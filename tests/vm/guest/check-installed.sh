@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Checks, inside the desktop session, what `./install.sh todo zed fondos animado` left.
+# Checks, inside the desktop session, what `./install.sh all zed wallpaper-rotation animated` left.
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 fails=0
@@ -13,6 +13,8 @@ eq()   { local what="$1" got="$2" want="$3"; if [ "$got" = "$want" ]; then ok "$
 for b in ghostty starship fastfetch lazygit lazydocker btop eza batcat fzf zoxide; do
   check "$b runs" "$b" --version
 done
+check "pantheme runs" pantheme --help
+check "tema is an alias of pantheme" test "$(readlink ~/.local/bin/tema)" = pantheme
 check "tema runs" tema --help
 check "JetBrains Mono Nerd Font installed" sh -c 'fc-list | grep -q "JetBrainsMono Nerd"'
 
@@ -20,16 +22,16 @@ check "JetBrains Mono Nerd Font installed" sh -c 'fc-list | grep -q "JetBrainsMo
 check ".bashrc loads omarchy-style.sh" grep -qF 'omarchy-style.sh' ~/.bashrc
 check "interactive bash has starship and zoxide" bash -ic 'type starship_precmd && type z'
 
-# escritorio
+# desktop
 check "Ghostty in the dock" sh -c "gsettings get io.elementary.dock launchers | grep -q com.mitchellh.ghostty.desktop"
 eq "default terminal" "$(gs org.gnome.desktop.default-applications.terminal exec)" "'ghostty'"
 
-# atajos
+# shortcuts
 while read -r schema key value; do
   eq "$schema $key" "$(gs "$schema" "$key")" "$value"
-done < <(bash ~/pantheme/gsettings/atajos.sh --valores)
+done < <(bash ~/pantheme/gsettings/shortcuts.sh --values)
 
-# tema (tokyo-night)
+# theme (tokyo-night)
 eq "current theme" "$(cat ~/.config/tema/actual)" "tokyo-night"
 eq "color-scheme" "$(gs org.gnome.desktop.interface color-scheme)" "'prefer-dark'"
 eq "accent" "$(gs org.gnome.desktop.interface gtk-theme)" "'io.elementary.stylesheet.grape'"
@@ -43,20 +45,27 @@ check "btop uses the generated theme" grep -q 'color_theme = "tema"' ~/.config/b
 check "Zed Matrix theme" test -s ~/.config/zed/themes/matrix.json
 check "Zed settings created" grep -q '"theme"' ~/.config/zed/settings.json
 
-# fondos
-eq "tema-fondo.timer enabled" "$(systemctl --user is-enabled tema-fondo.timer 2>&1)" "enabled"
-eq "tema-fondo.timer active" "$(systemctl --user is-active tema-fondo.timer 2>&1)" "active"
+# wallpaper-rotation
+eq "pantheme-wallpaper.timer enabled" "$(systemctl --user is-enabled pantheme-wallpaper.timer 2>&1)" "enabled"
+eq "pantheme-wallpaper.timer active" "$(systemctl --user is-active pantheme-wallpaper.timer 2>&1)" "active"
 before="$(gs org.gnome.desktop.background picture-uri)"
-check "tema-fondo.service runs" systemctl --user start tema-fondo.service
+check "pantheme-wallpaper.service runs" systemctl --user start pantheme-wallpaper.service
 n=$(find ~/Pictures/Wallpapers/tokyo-night -name '*.jpg' | wc -l)
 if [ "$n" -gt 1 ]; then
   after="$(gs org.gnome.desktop.background picture-uri)"
   if [ "$after" != "$before" ]; then ok "wallpaper rotated ($n wallpapers)"; else bad "wallpaper did not rotate"; fi
+  check "pantheme wallpaper" pantheme wallpaper
+  if [ "$(gs org.gnome.desktop.background picture-uri)" != "$after" ]; then ok "pantheme wallpaper changed it"; else bad "pantheme wallpaper did not change it"; fi
+  after="$(gs org.gnome.desktop.background picture-uri)"
+  check "tema fondo (alias)" tema fondo
+  if [ "$(gs org.gnome.desktop.background picture-uri)" != "$after" ]; then ok "tema fondo changed it"; else bad "tema fondo did not change it"; fi
+else
+  bad "tokyo-night has a single wallpaper ($n): can't check the rotation"
 fi
 
-# animado
-check "tema-animado.service installed" test -f ~/.config/systemd/user/tema-animado.service
-check "autostart entry" test -f ~/.config/autostart/tema-animado.desktop
+# animated
+check "pantheme-animated.service installed" test -f ~/.config/systemd/user/pantheme-animated.service
+check "autostart entry" test -f ~/.config/autostart/pantheme-animated.desktop
 check "matrix theme bundled" test -x ~/.local/share/tema/matrix/animado
 
 echo

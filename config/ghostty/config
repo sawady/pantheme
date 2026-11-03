@@ -1,15 +1,15 @@
-# Ghostty — los colores salen de themes/tema, que genera `tema`
-# El original, si había, queda en ~/.local/state/pantheme/backup
+# Ghostty: the colors come from themes/tema, which `pantheme` generates
+# The original, if there was one, is kept in ~/.local/state/pantheme/backup
 
-# Tema
+# Theme
 theme = tema
 
-# Fuente
+# Font
 font-family = JetBrainsMono Nerd Font
 font-size = 12
 font-feature = -calt
 
-# Ventana
+# Window
 window-padding-x = 14
 window-padding-y = 14
 window-padding-balance = true

@@ -1,4 +1,4 @@
-# Tema Matrix — propio (no viene de Omarchy)
+# Matrix theme: pantheme's own (not from Omarchy)
 mode = "dark"
 
 accent = "#00ff41"
@@ -31,7 +31,7 @@ bright_cyan = "#3dffcf"
 bright_blue = "#33d68f"
 bright_magenta = "#a8ffbb"
 
-# Ajustes del prompt de Starship (texto oscuro sobre verde)
+# Starship prompt tweaks (dark text on green)
 [starship]
 txt_light = "#0d0208"
 txt_dark = "#000000"

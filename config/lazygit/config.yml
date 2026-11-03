@@ -1,4 +1,4 @@
-# lazygit — colores ANSI (siguen el tema de Ghostty / `tema`)
+# lazygit: ANSI colors (they follow Ghostty's theme, set by `pantheme`)
 gui:
   nerdFontsVersion: "3"
   border: rounded
