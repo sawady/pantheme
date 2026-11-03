@@ -150,7 +150,7 @@ check_clean() {  # label
            .config/starship.toml .config/bash/omarchy-style.sh .config/btop .config/tema \
            .local/share/tema .local/share/fonts/JetBrainsMonoNerd .config/ghostty/themes/tema \
            .config/systemd .config/autostart; do
-    [ ! -e "$HOME/$p" ] && [ ! -L "$HOME/$p" ] || fail "$p is still there in \$HOME ($1)"
+    if [ -e "$HOME/$p" ] || [ -L "$HOME/$p" ]; then fail "$p is still there in \$HOME ($1)"; fi
   done
   [ ! -s "$STATE/manifest" ] || { cat "$STATE/manifest"; fail "the manifest isn't empty ($1)"; }
 }
@@ -192,7 +192,7 @@ echo "== migrate an install of tema (before 0.1.0) by installing"
 make_tema_era
 has "Migrating an install of \`tema\`" "$REPO/install.sh" configs
 for f in tema-fondo.service tema-fondo.timer tema-animado.service timers.target.wants/tema-fondo.timer; do
-  [ ! -e "$UNITS/$f" ] && [ ! -L "$UNITS/$f" ] || fail "$f is still there"
+  if [ -e "$UNITS/$f" ] || [ -L "$UNITS/$f" ]; then fail "$f is still there"; fi
 done
 [ ! -e "$HOME/.config/autostart/tema-animado.desktop" ] || fail "old autostart entry still there"
 for f in pantheme-wallpaper.service pantheme-wallpaper.timer pantheme-animated.service; do
