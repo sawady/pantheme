@@ -2,6 +2,44 @@
 
 Registro de lo que se fue haciendo en la máquina, con la decisión detrás.
 
+## 2026-11-03 — CLI en inglés con alias en castellano (0.1.0)
+
+- **El comando pasa a ser `pantheme`** (`bin/pantheme`): `pantheme <tema>`,
+  `pantheme wallpaper`, `pantheme animated on|off`, `pantheme help`. `tema`
+  queda como symlink en `~/.local/bin` y acepta `fondo`, `animado` y `ayuda`.
+  Decisión de Federico: inglés para el público, sin romper a quien ya lo usa.
+- **Pasos en inglés**: `packages ghostty binaries configs shell desktop
+  shortcuts theme`, opcionales `zed wallpaper-rotation animated`, más `all`,
+  `uninstall` y `help`. Los nombres viejos son alias. Para la rotación de
+  fondos se eligió `wallpaper-rotation` y no `wallpapers`, porque el paso no
+  descarga fondos (eso lo hace `pantheme`): instala el timer que los rota.
+- **Mensajes en inglés, o en castellano si el idioma es castellano**
+  (`LC_ALL` > `LC_MESSAGES` > `LANG`, como POSIX). Una tabla chica de
+  mensajes en `install.sh` (`msg`) y en `bin/pantheme` (`MSG`), sin gettext.
+  Los comentarios del código también pasaron al inglés.
+- **Units y autoarranque renombrados** a `pantheme-wallpaper.service/.timer`,
+  `pantheme-animated.service` y `pantheme-animated.desktop`. El instalador
+  migra una instalación de la época de `tema` en cualquier corrida: para y
+  desactiva las units viejas, las saca (al `removed-<fecha>/` del registro),
+  instala las nuevas para lo que había, cambia `~/.local/bin/tema` por
+  `pantheme` + alias y renombra los pasos del registro. `uninstall` deshace
+  también los nombres viejos sin necesidad de migrar.
+  - Las rutas de datos **no** se renombraron (`~/.local/share/tema`,
+    `~/.config/tema`, `themes/tema` de Ghostty, la paleta `tema` de Starship):
+    no se ven en el uso diario y moverlas obligaba a migrar datos del usuario.
+- `gsettings/atajos.sh` → `shortcuts.sh` (`--keys`, `--values`, `--reset`, con
+  las opciones viejas como alias), `escritorio.sh` → `desktop.sh`,
+  `capturar.sh` → `capture.sh`. `PANTHEME_THEME` y `PANTHEME_WALLPAPERS`
+  reemplazan a `TEMA_INICIAL` y `TEMA_WALLPAPERS` (que siguen andando).
+- Si falla la descarga de un tema, `pantheme` explica lo del límite de la API
+  de GitHub en lugar de tirar un traceback.
+- Pruebas: el smoke test cubre los nombres nuevos, los alias, los dos idiomas
+  y la migración de una instalación de `tema` simulada (migrando o
+  desinstalando directo). En la VM, `tests/vm/run.py test` corre todo con los
+  comandos nuevos y chequea los mensajes con `LANG=es_AR.UTF-8`; el nuevo
+  `tests/vm/run.py migration` instala el último commit con `tema` con su
+  propio instalador, corre el nuevo encima y desinstala en castellano.
+
 ## 2026-11-02 — Preparación para publicar
 
 - **Nuevo nombre: pantheme** (antes `elementary-setup`). El registro de lo
