@@ -140,3 +140,29 @@ ventanas entre escritorios.
 - **Corregido:** `undo_theme` se salteaba entera una carpeta de tema con
   archivos registrados, así que la paleta descargada en `tokyo-night/` quedaba
   después de desinstalar.
+
+## 2026-11-10: Color de las ventanas
+
+- Las ventanas seguían con los grises de elementary (`#333`, `#3a3a3a`)
+  aunque el resto fuera Tokyo Night. No hace falta tocar Gala: el fondo lo
+  pinta cada app con GTK, y GTK carga `~/.config/gtk-{3,4}.0/gtk.css` después
+  del tema.
+- El stylesheet de elementary usa casi siempre colores literales (más de 500)
+  y pocas reglas usan colores con nombre. Las barras de título
+  (`@color_primary`) y las vistas (`@base_color`) sí; el resto (`.background`,
+  popovers, menús, barras laterales, listas) se pisa con selectores.
+- Reparto de tonos como en los editores con Tokyo Night: el contenido con
+  `background`, el marco de la ventana con `dark_background` y las barras de
+  título con `darker_background`. El acento no se toca, sigue siendo el de
+  Pantheon (grape para Tokyo Night).
+- `pantheme` escribe `pantheme.css` sólo si `gtk.css` lo importa, así que sin
+  el paso `gtk` no cambia nada. El paso pone el `@import` primero (CSS lo
+  exige) y reinstala el comando, porque una versión vieja de `pantheme` no
+  sabría escribir los colores.
+- Probado en la máquina con Configuración (GTK4) y Code (GTK3). Chrome, Slack
+  y las apps Flatpak no leen ese CSS.
+- Ghostty usa libadwaita, que ignora el stylesheet de elementary y tiene sus
+  propios colores con nombre (`window_bg_color`, `headerbar_bg_color`,
+  `view_bg_color`…). También se redefinen, con el mismo reparto de tonos. Como
+  Ghostty corre en un solo proceso para todas las ventanas, toma el CSS
+  recién cuando se cierran todas.

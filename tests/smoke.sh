@@ -44,8 +44,11 @@ fails_with() {
 printf '# original bashrc\nexport FOO=1\n' > "$HOME/.bashrc"
 mkdir -p "$HOME/.config/ghostty"
 printf '# original ghostty\nfont-size = 10\n' > "$HOME/.config/ghostty/config"
+mkdir -p "$HOME/.config/gtk-3.0"
+printf '/* my own css */\nlabel { font-weight: bold; }\n' > "$HOME/.config/gtk-3.0/gtk.css"
 cp "$HOME/.bashrc" /tmp/bashrc.orig
 cp "$HOME/.config/ghostty/config" /tmp/ghostty.orig
+cp "$HOME/.config/gtk-3.0/gtk.css" /tmp/gtk3.orig
 
 echo "== install"
 "$REPO/install.sh" packages binaries configs shell theme
@@ -136,6 +139,22 @@ grep -qP '^animated\t\.config/autostart/pantheme-animated\.desktop$' "$STATE/man
   || fail "the Spanish step name should be recorded as 'animated'"
 ok "wallpaper-rotation and animated"
 
+"$REPO/install.sh" gtk >/dev/null
+"$REPO/install.sh" gtk >/dev/null
+GTK_IMPORT='@import url("pantheme.css");'
+for v in gtk-3.0 gtk-4.0; do
+  [ "$(head -n1 "$HOME/.config/$v/gtk.css")" = "$GTK_IMPORT" ] || fail "$v/gtk.css doesn't import pantheme.css first"
+  [ "$(grep -cxF "$GTK_IMPORT" "$HOME/.config/$v/gtk.css")" = 1 ] || fail "$v import line duplicated"
+  grep -qx '@define-color bg_color #13141c;' "$HOME/.config/$v/pantheme.css" || fail "$v tokyo-night colors"
+  grep -qx '  background-color: #24283b;' "$HOME/.config/$v/pantheme.css" || fail "$v entry color"
+  grep -qx '@define-color headerbar_bg_color #0e0e14;' "$HOME/.config/$v/pantheme.css" || fail "$v libadwaita colors"
+done
+grep -qx 'label { font-weight: bold; }' "$HOME/.config/gtk-3.0/gtk.css" || fail "the user's gtk.css was lost"
+pantheme matrix >/dev/null
+grep -qx '@define-color base_color #0d0208;' "$HOME/.config/gtk-4.0/pantheme.css" || fail "gtk colors don't follow the theme"
+pantheme tokyo-night >/dev/null
+ok "gtk"
+
 echo "== reinstall (idempotency)"
 "$REPO/install.sh" configs shell
 [ "$(grep -c 'omarchy-style.sh' "$HOME/.bashrc")" = 1 ] || fail "the .bashrc line was duplicated"
@@ -154,11 +173,12 @@ echo "== uninstall"
 check_clean() {  # label
   cmp -s "$HOME/.bashrc" /tmp/bashrc.orig || { diff /tmp/bashrc.orig "$HOME/.bashrc"; fail ".bashrc ($1)"; }
   cmp -s "$HOME/.config/ghostty/config" /tmp/ghostty.orig || fail "ghostty config not restored ($1)"
+  cmp -s "$HOME/.config/gtk-3.0/gtk.css" /tmp/gtk3.orig || fail "gtk-3.0/gtk.css not restored ($1)"
   local p
   for p in .local/bin/pantheme .local/bin/tema .local/bin/starship .local/bin/lazygit \
            .config/starship.toml .config/bash/omarchy-style.sh .config/btop .config/tema \
            .local/share/tema .local/share/fonts/JetBrainsMonoNerd .config/ghostty/themes/tema \
-           .config/systemd .config/autostart; do
+           .config/systemd .config/autostart .config/gtk-3.0/pantheme.css .config/gtk-4.0; do
     if [ -e "$HOME/$p" ] || [ -L "$HOME/$p" ]; then fail "$p is still there in \$HOME ($1)"; fi
   done
   [ ! -s "$STATE/manifest" ] || { cat "$STATE/manifest"; fail "the manifest isn't empty ($1)"; }

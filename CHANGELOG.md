@@ -17,6 +17,9 @@ log in Spanish, with the reasoning behind each decision, is in
   `MATRIX_HEAD` and `MATRIX_BG` (`#rrggbb`); the defaults are the same green.
 - A bundled theme folder without `colors.toml` adds its files to the Omarchy
   theme of the same name, whose palette is still downloaded.
+- Optional `gtk` step: the window colors of GTK 3 and 4 apps follow the theme.
+  It imports a `pantheme.css` from `~/.config/gtk-{3,4}.0/gtk.css`, which
+  `pantheme` rewrites on every theme change; uninstalling restores the files.
 
 ### Fixed
 
