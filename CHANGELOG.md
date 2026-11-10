@@ -8,6 +8,12 @@ log in Spanish, with the reasoning behind each decision, is in
 
 ## [Unreleased]
 
+### Added
+
+- Optional `gtk` step: the window colors of GTK 3 and 4 apps follow the theme.
+  It imports a `pantheme.css` from `~/.config/gtk-{3,4}.0/gtk.css`, which
+  `pantheme` rewrites on every theme change; uninstalling restores the files.
+
 ## [0.1.0] - 2026-11-03
 
 First public release.

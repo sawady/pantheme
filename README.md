@@ -82,6 +82,7 @@ Optional steps (only when you name them):
 | `zed` | Matrix theme for Zed, and the theme settings in `~/.config/zed/settings.json` if that file doesn't exist yet |
 | `wallpaper-rotation` | systemd user timer that switches to the next wallpaper every 30 minutes |
 | `animated` | Animated wallpaper for themes that have one (Matrix), started at login |
+| `gtk` | Window colors of GTK apps follow the theme (see [Window colors](#window-colors)) |
 
 The Spanish step names of earlier versions still work as aliases
 (`paquetes`, `binarios`, `escritorio`, `atajos`, `tema`, `fondos`, `animado`,
@@ -181,6 +182,23 @@ A theme is a folder with `colors.toml` (same format as Omarchy's, plus an
 optional `[starship]` table), `fondos/*.jpg` and, optionally, an executable
 `animado`. Put it in `temas/` and run `./install.sh configs`, or drop it into
 `~/.local/share/tema/<name>/`.
+
+### Window colors
+
+With the optional `gtk` step, `pantheme` also recolors the windows of GTK 3
+and 4 apps (Files, Settings, Code…) on top of elementary's stylesheet: views
+and lists get the theme's background, and the window background, sidebars,
+popovers and headerbars its darker shades. The accent color is still
+Pantheon's.
+
+The step adds `@import url("pantheme.css");` as the first line of
+`~/.config/gtk-3.0/gtk.css` and `~/.config/gtk-4.0/gtk.css` (your own CSS in
+those files stays, after it), and `pantheme` rewrites `pantheme.css` next to
+them on every theme change. Uninstalling restores the original files.
+
+Limits: open apps pick up the colors when restarted; Chrome, Electron apps
+(Slack, VS Code…) and Flatpak apps don't read that CSS; and some parts of
+elementary's stylesheet use fixed grays, so a few details can stay gray.
 
 ## Terminal
 

@@ -24,7 +24,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 DEFAULT=(packages ghostty binaries configs shell desktop shortcuts theme)
-OPTIONAL=(zed wallpaper-rotation animated)
+OPTIONAL=(zed wallpaper-rotation animated gtk)
 PACKAGES=(btop eza bat fzf zoxide curl ca-certificates python3 python3-pil fontconfig xz-utils)
 BASHRC_LINE='[ -f ~/.config/bash/omarchy-style.sh ] && . ~/.config/bash/omarchy-style.sh'
 BASHRC_COMMENT="# $NAME: prompt, aliases and tools"
@@ -36,6 +36,8 @@ BASHRC_COMMENTS=(
   '# Estilo Omarchy (prompt, aliases, herramientas)'
 )
 INITIAL_THEME="${PANTHEME_THEME:-${TEMA_INICIAL:-tokyo-night}}"
+# Line that the `gtk` step puts in ~/.config/gtk-{3,4}.0/gtk.css (same as in bin/pantheme)
+GTK_IMPORT='@import url("pantheme.css");'
 
 SUDO=
 [ "$(id -u)" -eq 0 ] || SUDO=sudo
@@ -76,6 +78,7 @@ Optional steps:
   zed                 Matrix theme and theme settings for Zed
   wallpaper-rotation  next wallpaper every 30 minutes (systemd timer)
   animated            animated wallpaper, for themes that have one (matrix)
+  gtk                 window colors of GTK apps follow the theme
 
 The Spanish names of earlier versions still work: paquetes, binarios,
 escritorio, atajos, tema, fondos, animado, todo, desinstalar, ayuda.
@@ -103,6 +106,7 @@ Opcionales:
   zed                 tema Matrix y ajustes de tema para Zed
   wallpaper-rotation  siguiente fondo cada 30 minutos (timer de systemd)
   animated            fondo animado, para los temas que tienen uno (matrix)
+  gtk                 el color de las ventanas de las apps GTK sigue al tema
 
 Los nombres en castellano de versiones anteriores siguen andando: paquetes,
 binarios, escritorio, atajos, tema, fondos, animado, todo, desinstalar, ayuda.
@@ -151,6 +155,10 @@ Los mensajes salen en castellano si el idioma es castellano (LANG=es_...).' ;;
                   es='No se pudo activar el timer (¿hay sesión de systemd de usuario?).' ;;
     h_animated) en='Animated wallpaper (for themes that have one, like matrix)'
                 es='Fondo animado (para los temas que tienen uno, como matrix)' ;;
+    h_gtk) en='Window colors of GTK apps (~/.config/gtk-3.0 and gtk-4.0)'
+           es='Colores de las ventanas de las apps GTK (~/.config/gtk-3.0 y gtk-4.0)' ;;
+    gtk_restart) en='Open apps take the colors when restarted. Chrome, Electron apps (Slack, VS Code…)\nand Flatpak apps keep their own.'
+                 es='Las apps abiertas toman los colores al reiniciarlas. Chrome, las apps Electron\n(Slack, VS Code…) y las Flatpak mantienen los suyos.' ;;
     restored) en='  restored    ~/%s'
               es='  restaurado  ~/%s' ;;
     removed) en='  removed     ~/%s'
@@ -528,6 +536,27 @@ step_animated() {
   put config/autostart/pantheme-animated.desktop    "$CFG/autostart/pantheme-animated.desktop"
   user_systemctl daemon-reload || true
   user_systemctl restart pantheme-animated.service || true
+}
+
+step_gtk() {
+  say h_gtk
+  # `pantheme` writes the colors, so it has to be a version that knows this step
+  STEP=binaries install_command
+  local v f
+  for v in gtk-3.0 gtk-4.0; do
+    f="$CFG/$v/gtk.css"
+    track "$f"
+    track "$CFG/$v/pantheme.css"
+    mkdir -p "$CFG/$v"
+    touch "$f"
+    if ! grep -qxF "$GTK_IMPORT" "$f"; then
+      # @import has to go before any rule; the user's own CSS stays after it
+      { printf '%s\n' "$GTK_IMPORT"; cat "$f"; } > "$TMP/gtk.css"
+      cat "$TMP/gtk.css" > "$f"
+    fi
+  done
+  "$BIN/pantheme" "$(cat "$CFG/tema/actual" 2>/dev/null || echo "$INITIAL_THEME")"
+  t gtk_restart
 }
 
 # ------------------------------------------------------------ uninstall

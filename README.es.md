@@ -67,7 +67,8 @@ cd ~/pantheme
 
 Opcionales (sólo si se nombran): `zed` (tema Matrix y ajustes de Zed),
 `wallpaper-rotation` (siguiente fondo cada 30 min con un timer de systemd),
-`animated` (fondo animado para los temas que lo tienen, al iniciar sesión).
+`animated` (fondo animado para los temas que lo tienen, al iniciar sesión),
+`gtk` (el color de las ventanas de las apps GTK sigue al tema, ver abajo).
 
 Los nombres de antes siguen andando como alias: `paquetes`, `binarios`,
 `escritorio`, `atajos`, `tema`, `fondos`, `animado`, `todo`, `desinstalar`.
@@ -138,6 +139,24 @@ castellano (`tema fondo`, `tema animado on|off`). Los fondos van a
 Un tema propio es una carpeta con `colors.toml` (formato de Omarchy, con una
 tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
 `animado`.
+
+### Color de las ventanas
+
+Con el paso opcional `gtk`, `pantheme` también cambia el color de las ventanas
+de las apps GTK 3 y 4 (Archivos, Configuración, Code…) por encima del
+stylesheet de elementary: las vistas y listas toman el fondo del tema, y el
+fondo de la ventana, las barras laterales, los popovers y las barras de
+título, sus tonos más oscuros. El acento sigue siendo el de Pantheon.
+
+El paso agrega `@import url("pantheme.css");` como primera línea de
+`~/.config/gtk-3.0/gtk.css` y `~/.config/gtk-4.0/gtk.css` (el CSS propio que
+haya queda después), y `pantheme` reescribe `pantheme.css` en cada cambio de
+tema. Al desinstalar se restauran los archivos originales.
+
+Límites: las apps abiertas toman los colores al reiniciarlas; Chrome, las apps
+Electron (Slack, VS Code…) y las Flatpak no leen ese CSS; y algunas partes del
+stylesheet de elementary usan grises fijos, así que algún detalle puede quedar
+gris.
 
 ## Pruebas
 
