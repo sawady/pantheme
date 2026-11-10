@@ -77,6 +77,9 @@ grep -q '^theme = tema' "$HOME/.config/ghostty/config" || fail "ghostty doesn't 
 grep -q 'palette = 0=' "$HOME/.config/ghostty/themes/tema" || fail "ghostty palette"
 grep -q 'theme\[main_bg\]' "$HOME/.config/btop/themes/tema.theme" || fail "btop theme"
 ls "$HOME"/Pictures/Wallpapers/tokyo-night/*.jpg >/dev/null || fail "tokyo-night wallpapers"
+# The bundled tokyo-night folder only adds the animated wallpaper; the palette is downloaded
+[ -x "$HOME/.local/share/tema/tokyo-night/animado" ] || fail "tokyo-night animated wallpaper"
+[ -f "$HOME/.local/share/tema/tokyo-night/colors.toml" ] || fail "tokyo-night palette"
 ok "theme tokyo-night"
 
 echo "== theme command, in English and with the Spanish aliases"
@@ -138,6 +141,12 @@ echo "== reinstall (idempotency)"
 [ "$(grep -c 'omarchy-style.sh' "$HOME/.bashrc")" = 1 ] || fail "the .bashrc line was duplicated"
 [ "$(cut -f2 "$STATE/manifest" | sort | uniq -d)" = "" ] || fail "duplicated lines in the manifest"
 ok "idempotent"
+
+echo "== uninstall theme only"
+"$REPO/install.sh" uninstall theme >/dev/null
+[ ! -e "$HOME/.local/share/tema/tokyo-night/colors.toml" ] || fail "downloaded tokyo-night palette not removed"
+[ -x "$HOME/.local/share/tema/tokyo-night/animado" ] || fail "bundled tokyo-night/animado should stay until configs"
+ok "uninstall theme"
 
 echo "== uninstall"
 "$REPO/install.sh" uninstall

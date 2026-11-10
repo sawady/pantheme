@@ -1,0 +1,12 @@
+#!/bin/sh
+# Animated wallpaper for Tokyo Night: the Matrix code rain, in violet.
+# The palette and static wallpapers still come from Omarchy's tokyo-night;
+# this folder only adds the animated wallpaper.
+# The violet is a more saturated take on Tokyo Night's magenta (#bb9af7),
+# which looks almost white in thin glyphs; the background is its darkest one.
+MATRIX_COLOR="${MATRIX_COLOR:-#a06cff}"
+MATRIX_DIM="${MATRIX_DIM:-#5e3a9e}"
+MATRIX_HEAD="${MATRIX_HEAD:-#dcc6ff}"
+MATRIX_BG="${MATRIX_BG:-#16161e}"
+export MATRIX_COLOR MATRIX_DIM MATRIX_HEAD MATRIX_BG
+exec "$(dirname "$0")/../matrix/animado" "$@"

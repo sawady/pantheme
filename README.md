@@ -174,13 +174,19 @@ subcommands (`tema fondo`, `tema animado on|off`).
 
 - **`matrix`**: phosphor green on black, a Zed theme and an **animated
   wallpaper** of katakana rain (`temas/matrix/animado`, Python + GTK3 + cairo,
-  ~7% of one core at 15 fps; tune with `MATRIX_FPS` and `MATRIX_SIZE`). Needs
-  the `animated` step.
+  ~7% of one core at 15 fps; tune with `MATRIX_FPS` and `MATRIX_SIZE`, and the
+  colors with `MATRIX_COLOR`, `MATRIX_DIM`, `MATRIX_HEAD` and `MATRIX_BG`).
+  Needs the `animated` step.
+- **`tokyo-night`**: Omarchy's Tokyo Night plus the same rain **in violet** as
+  its animated wallpaper (`temas/tokyo-night/animado`). With the `animated`
+  step it runs on the default theme too; `pantheme animated off` turns it off.
 
 A theme is a folder with `colors.toml` (same format as Omarchy's, plus an
 optional `[starship]` table), `fondos/*.jpg` and, optionally, an executable
 `animado`. Put it in `temas/` and run `./install.sh configs`, or drop it into
-`~/.local/share/tema/<name>/`.
+`~/.local/share/tema/<name>/`. A folder named after one of Omarchy's themes
+and without `colors.toml` only adds its files to that theme (like
+`tokyo-night`); the palette and wallpapers are still downloaded.
 
 ## Terminal
 

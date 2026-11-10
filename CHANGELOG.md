@@ -8,6 +8,21 @@ log in Spanish, with the reasoning behind each decision, is in
 
 ## [Unreleased]
 
+### Added
+
+- Tokyo Night gets an animated wallpaper: the Matrix code rain in violet
+  (`temas/tokyo-night/animado`). It only runs with the optional `animated`
+  step; `pantheme animated off` turns it off.
+- The Matrix rain takes its colors from `MATRIX_COLOR`, `MATRIX_DIM`,
+  `MATRIX_HEAD` and `MATRIX_BG` (`#rrggbb`); the defaults are the same green.
+- A bundled theme folder without `colors.toml` adds its files to the Omarchy
+  theme of the same name, whose palette is still downloaded.
+
+### Fixed
+
+- `./install.sh uninstall theme` also removes a downloaded palette that sits
+  in a folder with bundled files.
+
 ## [0.1.0] - 2026-11-03
 
 First public release.

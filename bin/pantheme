@@ -48,7 +48,7 @@ Usage:
   pantheme <theme>          apply a theme (downloaded the first time)
   pantheme wallpaper        next wallpaper of the current theme
   pantheme animated on|off  turn the animated wallpaper on or off
-                            (for themes that have one, like matrix)
+                            (for themes that have one: matrix, tokyo-night)
   pantheme help             this help
 
 `tema` is an alias of `pantheme`, and the Spanish subcommands still work:
@@ -61,7 +61,9 @@ light/dark mode.
 
 Your own themes: a folder ~/.local/share/tema/<name>/ with colors.toml
 (Omarchy's format, plus an optional [starship] table for the prompt palette)
-and, optionally, an executable `animado` (the animated wallpaper).
+and, optionally, an executable `animado` (the animated wallpaper). A folder
+with the name of one of Omarchy's themes and no colors.toml adds its files
+(e.g. an `animado`) to that theme.
 
 Environment:
   PANTHEME_WALLPAPERS  wallpaper folder (default ~/Pictures/Wallpapers, or the
@@ -74,7 +76,7 @@ Uso:
   pantheme <tema>           aplica un tema (lo descarga la primera vez)
   pantheme fondo            pasa al siguiente fondo del tema actual
   pantheme animado on|off   activa o desactiva el fondo animado
-                            (para los temas que tienen uno, como matrix)
+                            (para los temas que tienen uno: matrix, tokyo-night)
   pantheme ayuda            esta ayuda
 
 `tema` es un alias de `pantheme`, y también valen los subcomandos en inglés:
@@ -87,7 +89,9 @@ claro/oscuro de Pantheon.
 
 Temas propios: una carpeta ~/.local/share/tema/<nombre>/ con colors.toml
 (formato de Omarchy, con una tabla [starship] opcional para la paleta del
-prompt) y, si se quiere, un ejecutable `animado` (el fondo animado).
+prompt) y, si se quiere, un ejecutable `animado` (el fondo animado). Una
+carpeta con el nombre de un tema de Omarchy y sin colors.toml le agrega sus
+archivos (por ejemplo un `animado`) a ese tema.
 
 Variables de entorno:
   PANTHEME_WALLPAPERS  carpeta de fondos (por defecto ~/Pictures/Wallpapers, o

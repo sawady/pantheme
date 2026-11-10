@@ -8,6 +8,8 @@ once, so each frame is just a fade plus a few blits.
 Optional environment variables:
   MATRIX_FPS   frames per second (default 15)
   MATRIX_SIZE  font size in px (default 18)
+  MATRIX_COLOR, MATRIX_DIM, MATRIX_HEAD, MATRIX_BG
+               colors as #rrggbb (glyphs, dimmed glyphs, leading glyph, background)
 """
 import os
 import random
@@ -24,10 +26,17 @@ FPS = int(os.environ.get("MATRIX_FPS", "15"))
 SIZE = int(os.environ.get("MATRIX_SIZE", "18"))
 FONT = f"Noto Sans Mono CJK JP, Noto Sans CJK JP, JetBrainsMono Nerd Font {SIZE}px"
 
-BG = (0x0d / 255, 0x02 / 255, 0x08 / 255)
-GREEN = (0x00 / 255, 0xff / 255, 0x41 / 255)
-DIM = (0x00 / 255, 0x8f / 255, 0x11 / 255)
-HEAD = (0xd8 / 255, 0xff / 255, 0xe0 / 255)
+def rgb(var, default):
+    """'#rrggbb' from an environment variable, or the default, as cairo floats."""
+    value = os.environ.get(var, default).lstrip("#")
+    return tuple(int(value[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+# Colors can be overridden (e.g. to reuse the rain with another theme)
+BG = rgb("MATRIX_BG", "#0d0208")
+GREEN = rgb("MATRIX_COLOR", "#00ff41")
+DIM = rgb("MATRIX_DIM", "#008f11")
+HEAD = rgb("MATRIX_HEAD", "#d8ffe0")
 
 # Half-width katakana (as in the film) + digits + a few symbols
 CHARS = [chr(c) for c in range(0xFF66, 0xFF9E)] + list("0123456789Z:.\"=*+-<>¦|")
