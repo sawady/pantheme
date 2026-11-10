@@ -259,6 +259,28 @@ for w in "$WALLS/" "$DOTS"; do
   [ ! -e "$w/matrix/1-lluvia.jpg" ] || fail "the wallpaper in $w is still there"
   [ -d "$w/matrix" ] || fail "removed a directory that isn't in the record: $w/matrix"
 done
+
+# A relative folder is relative to where the installer runs, not to $HOME: a
+# file with the same path below $HOME isn't ours
+REL_JPG="$OUTSIDE/cwd/rel-walls/matrix/1-lluvia.jpg"
+mkdir -p "$OUTSIDE/cwd" "$HOME/rel-walls/matrix"
+echo "not ours" > "$HOME/rel-walls/matrix/1-lluvia.jpg"
+(cd "$OUTSIDE/cwd" && PANTHEME_WALLPAPERS=rel-walls "$REPO/install.sh" configs >/dev/null)
+[ -f "$REL_JPG" ] || fail "wallpaper not installed in the relative folder"
+grep -qxF "configs"$'\t'"$REL_JPG" "$STATE/manifest" || fail "a relative folder should be recorded as absolute"
+has "removed     $REL_JPG" "$REPO/install.sh" uninstall configs
+[ ! -e "$REL_JPG" ] || fail "the wallpaper in the relative folder is still there"
+[ "$(cat "$HOME/rel-walls/matrix/1-lluvia.jpg")" = "not ours" ] || fail "uninstall took a file that isn't ours"
+rm -r "$HOME/rel-walls"
+
+# The same from a directory below $HOME
+mkdir -p "$HOME/rel-cwd"
+(cd "$HOME/rel-cwd" && PANTHEME_WALLPAPERS=walls "$REPO/install.sh" configs >/dev/null)
+grep -qxF "configs"$'\t'"rel-cwd/walls/matrix/1-lluvia.jpg" "$STATE/manifest" || fail "a relative folder below \$HOME"
+"$REPO/install.sh" uninstall configs >/dev/null
+[ ! -e "$HOME/rel-cwd/walls/matrix/1-lluvia.jpg" ] || fail "the wallpaper below \$HOME is still there"
+rm -rf "$HOME/rel-cwd"
+
 check_clean "wallpapers outside \$HOME, unusual paths"
 rm -rf "$OUTSIDE" "$(dirname "$DOTS")"
 ok "wallpapers outside \$HOME"

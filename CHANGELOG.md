@@ -14,6 +14,11 @@ log in Spanish, with the reasoning behind each decision, is in
   bundled wallpapers in place while saying it had removed them. Now they are
   removed (or the original is put back), also for existing installs. Folders
   outside `$HOME` are left alone, even if they end up empty.
+- A relative `PANTHEME_WALLPAPERS` was recorded as if it were relative to
+  `$HOME`, so `./install.sh uninstall` could leave the wallpapers in place or
+  take a file with the same path from `$HOME`. It is now resolved against the
+  directory the installer runs in. Paths already recorded this way can't be
+  told apart from ones in `$HOME`, so they are still read as relative to it.
 
 ## [0.1.0] - 2026-11-03
 

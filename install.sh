@@ -452,7 +452,11 @@ step_configs() {
 wallpapers_dir() {
   local pics='' custom="${PANTHEME_WALLPAPERS:-${TEMA_WALLPAPERS:-}}"
   if [ -n "$custom" ]; then
-    echo "$custom"
+    # The record reads relative paths as relative to $HOME, not to this directory
+    case "$custom" in
+      /*) echo "$custom" ;;
+      *)  echo "$PWD/$custom" ;;
+    esac
     return
   fi
   [ -d "$HOME/Pictures/Wallpapers" ] || ! have xdg-user-dir || pics="$(xdg-user-dir PICTURES)"
