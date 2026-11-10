@@ -244,6 +244,67 @@ has "Desinstalar: wallpaper-rotation" env LANG=$ES "$REPO/install.sh" desinstala
 check_clean "tema-era uninstall"
 ok "tema-era install uninstalled"
 
+echo "== wallpapers outside \$HOME"
+# What the record names goes away or is put back, but no folder around it: those
+# aren't in the record and may be the user's, even when they end up empty.
+OUTSIDE=/tmp/pantheme-outside
+WALLS="$OUTSIDE/walls"
+JPG="$WALLS/matrix/1-lluvia.jpg"
+mkdir -p "$WALLS"
+PANTHEME_WALLPAPERS="$WALLS" "$REPO/install.sh" configs >/dev/null
+cmp -s "$JPG" "$REPO/temas/matrix/fondos/1-lluvia.jpg" || fail "wallpaper not installed outside \$HOME"
+# The format of the record that existing installs have
+grep -qxF "configs"$'\t'"$JPG" "$STATE/manifest" || fail "the path outside \$HOME should be recorded as absolute"
+has "removed     $JPG" "$REPO/install.sh" uninstall configs
+[ ! -e "$JPG" ] || fail "the wallpaper outside \$HOME is still there"
+[ -d "$WALLS/matrix" ] || fail "removed a directory outside \$HOME that isn't in the record"
+if grep -qF "$JPG" "$STATE/manifest"; then fail "the wallpaper is still in the manifest"; fi
+check_clean "wallpapers outside \$HOME"
+
+# With a file that was already there: it's saved and put back
+echo mine > "$JPG"
+PANTHEME_WALLPAPERS="$WALLS" "$REPO/install.sh" configs >/dev/null
+cmp -s "$JPG" "$REPO/temas/matrix/fondos/1-lluvia.jpg" || fail "wallpaper not replaced outside \$HOME"
+has "restaurado  $JPG" env LANG=$ES "$REPO/install.sh" uninstall configs
+[ "$(cat "$JPG")" = mine ] || fail "the original outside \$HOME wasn't put back"
+rm -r "$WALLS/matrix"
+
+# A trailing slash, and a path out of $HOME that is recorded as relative (../)
+DOTS="$HOME/../pantheme-outside-dots/walls"
+for w in "$WALLS/" "$DOTS"; do
+  mkdir -p "$w"
+  PANTHEME_WALLPAPERS="$w" "$REPO/install.sh" configs >/dev/null
+  [ -f "$w/matrix/1-lluvia.jpg" ] || fail "wallpaper not installed in $w"
+  "$REPO/install.sh" uninstall configs >/dev/null
+  [ ! -e "$w/matrix/1-lluvia.jpg" ] || fail "the wallpaper in $w is still there"
+  [ -d "$w/matrix" ] || fail "removed a directory that isn't in the record: $w/matrix"
+done
+
+# A relative folder is relative to where the installer runs, not to $HOME: a
+# file with the same path below $HOME isn't ours
+REL_JPG="$OUTSIDE/cwd/rel-walls/matrix/1-lluvia.jpg"
+mkdir -p "$OUTSIDE/cwd" "$HOME/rel-walls/matrix"
+echo "not ours" > "$HOME/rel-walls/matrix/1-lluvia.jpg"
+(cd "$OUTSIDE/cwd" && PANTHEME_WALLPAPERS=rel-walls "$REPO/install.sh" configs >/dev/null)
+[ -f "$REL_JPG" ] || fail "wallpaper not installed in the relative folder"
+grep -qxF "configs"$'\t'"$REL_JPG" "$STATE/manifest" || fail "a relative folder should be recorded as absolute"
+has "removed     $REL_JPG" "$REPO/install.sh" uninstall configs
+[ ! -e "$REL_JPG" ] || fail "the wallpaper in the relative folder is still there"
+[ "$(cat "$HOME/rel-walls/matrix/1-lluvia.jpg")" = "not ours" ] || fail "uninstall took a file that isn't ours"
+rm -r "$HOME/rel-walls"
+
+# The same from a directory below $HOME
+mkdir -p "$HOME/rel-cwd"
+(cd "$HOME/rel-cwd" && PANTHEME_WALLPAPERS=walls "$REPO/install.sh" configs >/dev/null)
+grep -qxF "configs"$'\t'"rel-cwd/walls/matrix/1-lluvia.jpg" "$STATE/manifest" || fail "a relative folder below \$HOME"
+"$REPO/install.sh" uninstall configs >/dev/null
+[ ! -e "$HOME/rel-cwd/walls/matrix/1-lluvia.jpg" ] || fail "the wallpaper below \$HOME is still there"
+rm -rf "$HOME/rel-cwd"
+
+check_clean "wallpapers outside \$HOME, unusual paths"
+rm -rf "$OUTSIDE" "$(dirname "$DOTS")"
+ok "wallpapers outside \$HOME"
+
 echo "== uninstall with nothing recorded"
 rm -rf "$STATE"
 fails_with "Nothing is recorded" "$REPO/install.sh" uninstall
