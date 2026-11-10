@@ -138,7 +138,18 @@ castellano (`tema fondo`, `tema animado on|off`). Los fondos van a
 
 Un tema propio es una carpeta con `colors.toml` (formato de Omarchy, con una
 tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
-`animado`.
+`animado`. Una carpeta con el nombre de un tema de Omarchy y sin `colors.toml`
+sólo le agrega sus archivos a ese tema; la paleta y los fondos se siguen
+descargando.
+
+Temas incluidos:
+
+- **`matrix`**: verde fósforo sobre negro, tema de Zed y fondo animado de
+  lluvia de katakana. Los colores de la lluvia se pueden cambiar con
+  `MATRIX_COLOR`, `MATRIX_DIM`, `MATRIX_HEAD` y `MATRIX_BG`.
+- **`tokyo-night`**: el Tokyo Night de Omarchy, con la misma lluvia **en
+  violeta** como fondo animado. Con el paso `animated` también corre en el tema
+  por defecto; `pantheme animated off` la apaga.
 
 ### Color de las ventanas
 

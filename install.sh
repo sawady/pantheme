@@ -77,7 +77,7 @@ Default steps:
 Optional steps:
   zed                 Matrix theme and theme settings for Zed
   wallpaper-rotation  next wallpaper every 30 minutes (systemd timer)
-  animated            animated wallpaper, for themes that have one (matrix)
+  animated            animated wallpaper, for themes that have one (matrix, tokyo-night)
   gtk                 window colors of GTK apps follow the theme
 
 The Spanish names of earlier versions still work: paquetes, binarios,
@@ -105,7 +105,7 @@ Pasos por defecto:
 Opcionales:
   zed                 tema Matrix y ajustes de tema para Zed
   wallpaper-rotation  siguiente fondo cada 30 minutos (timer de systemd)
-  animated            fondo animado, para los temas que tienen uno (matrix)
+  animated            fondo animado, para los temas que tienen uno (matrix, tokyo-night)
   gtk                 el color de las ventanas de las apps GTK sigue al tema
 
 Los nombres en castellano de versiones anteriores siguen andando: paquetes,
@@ -153,8 +153,8 @@ Los mensajes salen en castellano si el idioma es castellano (LANG=es_...).' ;;
                 es='Rotación del fondo cada 30 minutos (timer de systemd de usuario)' ;;
     timer_failed) en='Could not enable the timer (is there a systemd user session?).'
                   es='No se pudo activar el timer (¿hay sesión de systemd de usuario?).' ;;
-    h_animated) en='Animated wallpaper (for themes that have one, like matrix)'
-                es='Fondo animado (para los temas que tienen uno, como matrix)' ;;
+    h_animated) en='Animated wallpaper (for themes that have one, like matrix or tokyo-night)'
+                es='Fondo animado (para los temas que tienen uno, como matrix o tokyo-night)' ;;
     h_gtk) en='Window colors of GTK apps (~/.config/gtk-3.0 and gtk-4.0)'
            es='Colores de las ventanas de las apps GTK (~/.config/gtk-3.0 y gtk-4.0)' ;;
     gtk_restart) en='Open apps take the colors when restarted. Chrome, Electron apps (Slack, VS Code…)\nand Flatpak apps keep their own.'
@@ -438,12 +438,16 @@ step_configs() {
   put config/lazygit/config.yml         "$CFG/lazygit/config.yml"
   put config/lazydocker/config.yml      "$CFG/lazydocker/config.yml"
 
-  # Bundled themes (e.g. matrix): palette, animated wallpaper and static wallpapers
+  # Bundled themes (e.g. matrix): palette, animated wallpaper and static wallpapers.
+  # A folder without colors.toml only adds files to the Omarchy theme of the
+  # same name (e.g. tokyo-night/animado); `pantheme` still downloads its palette.
   local dir name f walls
   walls="$(wallpapers_dir)"
   for dir in "$REPO"/temas/*/; do
     name="$(basename "$dir")"
-    put "temas/$name/colors.toml" "$HOME/.local/share/tema/$name/colors.toml"
+    if [ -f "$dir/colors.toml" ]; then
+      put "temas/$name/colors.toml" "$HOME/.local/share/tema/$name/colors.toml"
+    fi
     if [ -f "$dir/animado" ]; then
       put "temas/$name/animado" "$HOME/.local/share/tema/$name/animado" 755
     fi
@@ -676,11 +680,23 @@ undo_theme() {
   undo_files theme
   undo_keys theme
   # Palettes downloaded by `pantheme` (`configs` removes the bundled themes)
-  local e rel
+  local e f rel
   for e in "$HOME"/.local/share/tema/*; do
     [ -e "$e" ] || continue
     rel="${e#"$HOME"/}"
-    tracked_prefix "$rel/" && continue
+    if tracked_prefix "$rel/"; then
+      # A bundled folder that only adds files (tokyo-night/animado): the
+      # downloaded palette next to them goes, the bundled files stay for `configs`
+      for f in "$e"/*; do
+        [ -e "$f" ] || continue
+        rel="${f#"$HOME"/}"
+        tracked "$rel" && continue
+        mkdir -p "$TRASH/$(dirname "$rel")"
+        mv "$f" "$TRASH/$rel"
+        t removed "$(shown "$rel")"
+      done
+      continue
+    fi
     mkdir -p "$TRASH/.local/share/tema"
     mv "$e" "$TRASH/$rel"
     t removed "$(shown "$rel")"

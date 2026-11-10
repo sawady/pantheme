@@ -125,6 +125,22 @@ ventanas entre escritorios.
   - `tema animado on|off`
 - **Corregido:** `capturar.sh` se cortaba en silencio si faltaba algún archivo.
 
+## 2026-11-10: Lluvia violeta en Tokyo Night
+
+- Volví a Tokyo Night pero quería conservar la lluvia de Matrix. En vez de
+  hacer otro tema, `temas/tokyo-night/` trae sólo un `animado`, y la paleta y
+  los fondos se siguen bajando de Omarchy. Para eso `configs` acepta carpetas
+  sin `colors.toml`.
+- El `animado` de Tokyo Night es un script de shell que llama al de Matrix con
+  otros colores. Para eso la lluvia ahora lee `MATRIX_COLOR`, `MATRIX_DIM`,
+  `MATRIX_HEAD` y `MATRIX_BG`.
+- Violeta `#a06cff` en lugar del magenta de Tokyo Night (`#bb9af7`): en glifos
+  finos ese magenta se ve casi blanco. Fondo `#16161e`, el más oscuro de la
+  paleta.
+- **Corregido:** `undo_theme` se salteaba entera una carpeta de tema con
+  archivos registrados, así que la paleta descargada en `tokyo-night/` quedaba
+  después de desinstalar.
+
 ## 2026-11-10: Color de las ventanas
 
 - Las ventanas seguían con los grises de elementary (`#333`, `#3a3a3a`)
