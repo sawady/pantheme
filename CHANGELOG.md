@@ -8,6 +8,13 @@ log in Spanish, with the reasoning behind each decision, is in
 
 ## [Unreleased]
 
+### Fixed
+
+- With `PANTHEME_WALLPAPERS` outside `$HOME`, `./install.sh uninstall` left the
+  bundled wallpapers in place while saying it had removed them. Now they are
+  removed (or the original is put back), also for existing installs. Folders
+  outside `$HOME` are left alone, even if they end up empty.
+
 ## [0.1.0] - 2026-11-03
 
 First public release.
