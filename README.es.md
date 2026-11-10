@@ -143,7 +143,8 @@ tabla `[starship]` opcional), `fondos/*.jpg` y, si se quiere, un ejecutable
 ### Color de las ventanas
 
 Con el paso opcional `gtk`, `pantheme` también cambia el color de las ventanas
-de las apps GTK 3 y 4 (Archivos, Configuración, Code…) por encima del
+de las apps GTK 3 y 4 (Archivos, Configuración, Code, y apps libadwaita como
+Ghostty) por encima del
 stylesheet de elementary: las vistas y listas toman el fondo del tema, y el
 fondo de la ventana, las barras laterales, los popovers y las barras de
 título, sus tonos más oscuros. El acento sigue siendo el de Pantheon.

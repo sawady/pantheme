@@ -144,6 +144,7 @@ for v in gtk-3.0 gtk-4.0; do
   [ "$(grep -cxF "$GTK_IMPORT" "$HOME/.config/$v/gtk.css")" = 1 ] || fail "$v import line duplicated"
   grep -qx '@define-color bg_color #13141c;' "$HOME/.config/$v/pantheme.css" || fail "$v tokyo-night colors"
   grep -qx '  background-color: #24283b;' "$HOME/.config/$v/pantheme.css" || fail "$v entry color"
+  grep -qx '@define-color headerbar_bg_color #0e0e14;' "$HOME/.config/$v/pantheme.css" || fail "$v libadwaita colors"
 done
 grep -qx 'label { font-weight: bold; }' "$HOME/.config/gtk-3.0/gtk.css" || fail "the user's gtk.css was lost"
 pantheme matrix >/dev/null

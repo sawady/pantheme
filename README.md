@@ -186,7 +186,8 @@ optional `[starship]` table), `fondos/*.jpg` and, optionally, an executable
 ### Window colors
 
 With the optional `gtk` step, `pantheme` also recolors the windows of GTK 3
-and 4 apps (Files, Settings, Code…) on top of elementary's stylesheet: views
+and 4 apps (Files, Settings, Code, and libadwaita apps like Ghostty) on top
+of elementary's stylesheet: views
 and lists get the theme's background, and the window background, sidebars,
 popovers and headerbars its darker shades. The accent color is still
 Pantheon's.

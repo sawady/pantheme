@@ -145,3 +145,8 @@ ventanas entre escritorios.
   sabría escribir los colores.
 - Probado en la máquina con Configuración (GTK4) y Code (GTK3). Chrome, Slack
   y las apps Flatpak no leen ese CSS.
+- Ghostty usa libadwaita, que ignora el stylesheet de elementary y tiene sus
+  propios colores con nombre (`window_bg_color`, `headerbar_bg_color`,
+  `view_bg_color`…). También se redefinen, con el mismo reparto de tonos. Como
+  Ghostty corre en un solo proceso para todas las ventanas, toma el CSS
+  recién cuando se cierran todas.
