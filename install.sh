@@ -18,7 +18,7 @@ REPO="$(cd "$(dirname "$0")" && pwd)"
 BIN="$HOME/.local/bin"
 CFG="$HOME/.config"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/$NAME"
-MANIFEST="$STATE/manifest"   # step<TAB>path relative to $HOME
+MANIFEST="$STATE/manifest"   # step<TAB>path relative to $HOME (absolute if it is outside)
 GSAVED="$STATE/gsettings"    # step<TAB>schema<TAB>key<TAB>original value
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -151,10 +151,10 @@ Los mensajes salen en castellano si el idioma es castellano (LANG=es_...).' ;;
                   es='No se pudo activar el timer (¿hay sesión de systemd de usuario?).' ;;
     h_animated) en='Animated wallpaper (for themes that have one, like matrix or tokyo-night)'
                 es='Fondo animado (para los temas que tienen uno, como matrix o tokyo-night)' ;;
-    restored) en='  restored    ~/%s'
-              es='  restaurado  ~/%s' ;;
-    removed) en='  removed     ~/%s'
-             es='  quitado     ~/%s' ;;
+    restored) en='  restored    %s'
+              es='  restaurado  %s' ;;
+    removed) en='  removed     %s'
+             es='  quitado     %s' ;;
     no_gsettings) en='  (no gsettings: the desktop settings are not restored)'
                   es='  (sin gsettings: no se restauran los ajustes del escritorio)' ;;
     keep_packages) en='  apt packages are not removed (other programs may use them).\n  To remove them: sudo apt remove %s'
@@ -247,7 +247,7 @@ prepare_record() {
 
 tracked() { [ -f "$MANIFEST" ] && cut -f2 "$MANIFEST" | grep -qxF "$1"; }
 
-untrack() {  # path relative to $HOME
+untrack() {  # recorded path
   [ -f "$MANIFEST" ] || return 0
   awk -F'\t' -v p="$1" '$2 != p' "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
 }
@@ -456,7 +456,11 @@ step_configs() {
 wallpapers_dir() {
   local pics='' custom="${PANTHEME_WALLPAPERS:-${TEMA_WALLPAPERS:-}}"
   if [ -n "$custom" ]; then
-    echo "$custom"
+    # The record reads relative paths as relative to $HOME, not to this directory
+    case "$custom" in
+      /*) echo "$custom" ;;
+      *)  echo "$PWD/$custom" ;;
+    esac
     return
   fi
   [ -d "$HOME/Pictures/Wallpapers" ] || ! have xdg-user-dir || pics="$(xdg-user-dir PICTURES)"
@@ -537,23 +541,42 @@ step_animated() {
 # ------------------------------------------------------------ uninstall
 TRASH="$STATE/removed-$(date +%Y%m%d-%H%M%S)"
 
+# How a recorded path is shown to the user
+# shellcheck disable=SC2088  # the ~ is only for display
+shown() {
+  case "$1" in
+    /*) echo "$1" ;;
+    *)  echo "~/$1" ;;
+  esac
+}
+
 # Moves what was installed to $TRASH, and puts the original back if there was one
-restore() {  # path relative to $HOME
-  local rel="$1" dst="$HOME/$1"
+restore() {  # recorded path: relative to $HOME, or absolute if it is outside
+  # A ../ would take it out of $TRASH, maybe to the same place as its backup
+  local rel="$1" dst="$1" trashed="${1//..\//up/}"
+  case "$rel" in
+    /*) ;;
+    *)  dst="$HOME/$rel" ;;
+  esac
   if [ -e "$dst" ] || [ -L "$dst" ]; then
-    mkdir -p "$TRASH/$(dirname "$rel")"
-    mv "$dst" "$TRASH/$rel"
+    mkdir -p "$TRASH/$(dirname "$trashed")"
+    mv "$dst" "$TRASH/$trashed"
   fi
   if [ -e "$STATE/backup/$rel" ] || [ -L "$STATE/backup/$rel" ]; then
     mkdir -p "$(dirname "$dst")"
     mv "$STATE/backup/$rel" "$dst"
-    t restored "$rel"
+    t restored "$(shown "$rel")"
   else
-    t removed "$rel"
-    # Removes the directories left empty (without going above $HOME)
-    local d
-    d="$(dirname "$dst")"
-    while [ "$d" != "$HOME" ] && rmdir "$d" 2>/dev/null; do d="$(dirname "$d")"; done
+    t removed "$(shown "$rel")"
+    # Removes the directories left empty, only below $HOME: the ones outside it
+    # (also through ..) aren't in the record and may be the user's
+    case "/$rel/" in
+      //*|*/../*) ;;
+      *)
+        local d="$rel"
+        while d="$(dirname "$d")"; [ "$d" != . ] && rmdir "$HOME/$d" 2>/dev/null; do :; done
+        ;;
+    esac
   fi
 }
 
@@ -641,13 +664,13 @@ undo_theme() {
         tracked "$rel" && continue
         mkdir -p "$TRASH/$(dirname "$rel")"
         mv "$f" "$TRASH/$rel"
-        t removed "$rel"
+        t removed "$(shown "$rel")"
       done
       continue
     fi
     mkdir -p "$TRASH/.local/share/tema"
     mv "$e" "$TRASH/$rel"
-    t removed "$rel"
+    t removed "$(shown "$rel")"
   done
   rmdir "$HOME/.local/share/tema" 2>/dev/null || true
   t walls_kept "$(wallpapers_dir)"
