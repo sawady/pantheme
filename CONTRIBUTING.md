@@ -24,7 +24,7 @@ they modify `$HOME` and the desktop settings. Use one of these:
 1. **Lint** (fast, what CI runs first):
 
    ```bash
-   shellcheck install.sh capture.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh config/bash/omarchy-style.sh
+   shellcheck install.sh capture.sh gsettings/*.sh tests/*.sh tests/vm/guest/*.sh config/bash/omarchy-style.sh temas/tokyo-night/animado
    python3 -m py_compile bin/pantheme temas/matrix/animado tests/vm/*.py
    ```
 
